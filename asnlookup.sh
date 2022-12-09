@@ -1,4 +1,5 @@
 #!/bin/bash
+#set -x
 
 # Check if an IP address argument was provided
 if [ $# -eq 0 ]
@@ -11,9 +12,10 @@ fi
 ASN=$(whois -h v4.whois.cymru.com " -c -p $1")
 
 # Check if the ASN was found
-if [ -z $ASN ]
+if [ -z "$ASN" ]
 then
     echo "ASN not found for IP address: $1"
 else
-    echo "$ASN"
+    echo -e "\n$ASN"
+    host $1
 fi
