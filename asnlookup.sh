@@ -1,4 +1,4 @@
- #!/bin/bash
+#!/bin/bash
 
 # Check if an IP address argument was provided
 if [ $# -eq 0 ]
@@ -8,12 +8,12 @@ then
 fi
 
 # Get the ASN for the IP address using the "whois" command
-ASN=$(whois $1 | grep "aut-num" | awk '{print $2}')
+ASN=$(whois -h v4.whois.cymru.com " -c -p $1")
 
 # Check if the ASN was found
 if [ -z $ASN ]
 then
     echo "ASN not found for IP address: $1"
 else
-    echo "ASN for IP address $1: $ASN"
+    echo "$ASN"
 fi
