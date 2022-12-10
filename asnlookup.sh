@@ -1,21 +1,22 @@
 #!/bin/bash
-#set -x
 
-# Check if an IP address argument was provided
-if [ $# -eq 0 ]
-then
-    echo "Please provide an IP address as an argument"
-    exit 1
-fi
+# Find the ASN of an IP address
 
-# Get the ASN for the IP address using the "whois" command
-ASN=$(whois -h v4.whois.cymru.com " -c -p $1")
+# Prompt the user for an IP address
+read -p "Enter an IP address: " ip_address
 
-# Check if the ASN was found
-if [ -z "$ASN" ]
-then
+# Check if the input is a valid IP address
+if [[ $ip_address =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+  # Query the ASN
+  asn=$(whois -h v4.whois.cymru.com " -c -p $ip_address")
+  if [ -z "$ASN" ]
+   then
     echo "ASN not found for IP address: $1"
+    else
+    echo -e "\n$asn"
+    host $ip_address 
+   fi
 else
-    echo -e "\n$ASN"
-    host $1
+  # Print an error message if the input is not a valid IP address
+  echo "Invalid IP address"
 fi
