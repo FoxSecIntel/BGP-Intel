@@ -10,6 +10,6 @@ Use this script to identify which ASN the IP is on
 
 $ ASN-lookup.sh 93.184.216.35
 
-AS      | IP               | BGP Prefix          | CC | AS Name
-15133   | 93.184.216.34    | 93.184.216.0/24     | US | EDGECAST, US
-Host 34.216.184.93.in-addr.arpa. not found: 3(NXDOMAIN)
+AS      | IP               | BGP Prefix          | CC | AS Name <br>
+15133   | 93.184.216.34    | 93.184.216.0/24     | US | EDGECAST, US <br>
+Host 34.216.184.93.in-addr.arpa. not found: 3(NXDOMAIN)<br>
