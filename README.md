@@ -8,7 +8,7 @@ ASNs are used in a variety of network protocols and technologies, including Bord
 
 Use this script to identify which ASN the IP is on
 
-$ ASN-lookup.sh 8.8.8.8
+$ ./ASN-lookup.sh 8.8.8.8
 
 AS      | IP               | BGP Prefix          | CC | Registry | Allocated  | AS Name
 15169   | 8.8.8.8          | 8.8.8.0/24          | US | arin     | 1992-12-01 | GOOGLE, US
