@@ -10,7 +10,7 @@ Use this script to identify which ASN the IP is on
 
 $ ./ASN-lookup.sh 8.8.8.8
 
-AS      | IP               | BGP Prefix          | CC | Registry | Allocated  | AS Name
+AS      | IP               | BGP Prefix          | CC | Registry | Allocated  | AS Name <BR>
 15169   | 8.8.8.8          | 8.8.8.0/24          | US | arin     | 1992-12-01 | GOOGLE, US
 
 8.8.8.8.in-addr.arpa domain name pointer dns.google.
