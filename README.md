@@ -1,4 +1,4 @@
-# "Determining the ASN of an IP Address with a Bash Script
+# Determining the ASN of an IP Address with a Bash Script
 
 ASN stands for "Autonomous System Number." In the context of networking, an ASN is a unique number assigned to a network or group of networks that operate together as a single entity. This number is used to identify the network and its associated routes on the global internet.
 
