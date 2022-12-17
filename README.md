@@ -8,8 +8,9 @@ ASNs are used in a variety of network protocols and technologies, including Bord
 
 Use this script to identify which ASN the IP is on
 
-$ ASN-lookup.sh 93.184.216.35
+$ ASN-lookup.sh 8.8.8.8
 
-AS      | IP               | BGP Prefix          | CC | AS Name <br>
-15133   | 93.184.216.34    | 93.184.216.0/24     | US | EDGECAST, US <br>
-Host 34.216.184.93.in-addr.arpa. not found: 3(NXDOMAIN)<br>
+AS      | IP               | BGP Prefix          | CC | Registry | Allocated  | AS Name
+15169   | 8.8.8.8          | 8.8.8.0/24          | US | arin     | 1992-12-01 | GOOGLE, US
+
+8.8.8.8.in-addr.arpa domain name pointer dns.google.
