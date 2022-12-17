@@ -12,12 +12,12 @@ ip_address=$1
 # Check if the input is a valid IP address
 if [[ $ip_address =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
   # Query the ASN
-  asn=$(whois -h v4.whois.cymru.com " -c -p $ip_address")
+  asn=$(whois -h v4.whois.cymru.com " -v $ip_address")
   if [ -z "$asn" ]
    then
     echo "ASN not found for IP address: $1"
     else
-    echo -e "\n$asn"
+    echo -e "\n$asn\n"
     host $ip_address 
    fi
 else
