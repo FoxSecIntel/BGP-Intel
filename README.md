@@ -6,11 +6,6 @@ ASNs are typically assigned by regional internet registries (RIRs) such as ARIN 
 
 ASNs are used in a variety of network protocols and technologies, including Border Gateway Protocol (BGP) and Multiprotocol Label Switching (MPLS). They are also used to identify and differentiate between different networks on the internet.
 
-Use this script to identify which ASN the IP is on
+ASN-lookup.sh  - Use this script to identify which ASN the IP is on
+ASN-cdir.sh - Use this script to work out which IP exist within the ASN
 
-$ ./ASN-lookup.sh 8.8.8.8
-
-AS      | IP               | BGP Prefix          | CC | Registry | Allocated  | AS Name <BR>
-15169   | 8.8.8.8          | 8.8.8.0/24          | US | arin     | 1992-12-01 | GOOGLE, US
-
-8.8.8.8.in-addr.arpa domain name pointer dns.google.
