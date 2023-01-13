@@ -8,4 +8,4 @@ ASNs are used in a variety of network protocols and technologies, including Bord
 
 ASN-lookup.sh  - Use this script to identify which ASN the IP is on <BR>
 ASN-cdir.sh - Use this script to work out which IP exist within the ASN
-
+ip_lookup.sh - Use this script to gather IP Geolocation information
