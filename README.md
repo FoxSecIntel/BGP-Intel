@@ -12,6 +12,9 @@ $ ./asn-lookup.sh [insert IP address]
 
 ASN-cdir.sh - Use this script to work out which IP exist within an ASN
 $ ./asn-cdir.sh [AS Name]
+  
+ASN-ipasndistribution - read in a bunch of IP addresses from a .txt file, analyse and print out the results
+$ ./asn-ipasndistribution.sh  < ip_addresses.txt
 
 ip_lookup.sh - Use this script to gather IP Geolocation information
 $ ./ip_lookup.sh [insert IP address]
