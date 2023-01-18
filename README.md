@@ -20,6 +20,6 @@ ip_lookup.sh - Use this script to gather IP Geolocation information
 $ ./ip_lookup.sh [insert IP address]
 
 random_ip_generator.sh - Use this script to generate random public IPv4 addresses
-$ ./random_ip_generator.sh [number of IPs required[
+$ ./random_ip_generator.sh [number of IPs required}
 
 </PRE>
