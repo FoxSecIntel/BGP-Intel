@@ -16,5 +16,6 @@ $ ./asn-cdir.sh [AS Name]
 ip_lookup.sh - Use this script to gather IP Geolocation information
 
 random_ip_generator.sh - Use this script to generate random public IPv4 addresses
+$ ./random_ip_generator.sh [number of IPs required[
 
 </PRE>
