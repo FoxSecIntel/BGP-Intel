@@ -1,4 +1,4 @@
-# Bash scripts to help you gather OSINT from ASN and IP addresses 
+# Scripts to help you gather OSINT from ASN and IP addresses 
 
 ASN stands for "Autonomous System Number." In the context of networking, an ASN is a unique number assigned to a network or group of networks that operate together as a single entity. This number is used to identify the network and its associated routes on the global internet.
 
