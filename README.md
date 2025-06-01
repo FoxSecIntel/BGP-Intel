@@ -1,25 +1,29 @@
-# Scripts to help you gather OSINT from ASN and IP addresses 
+# BGP-Intel
 
-ASN stands for "Autonomous System Number." In the context of networking, an ASN is a unique number assigned to a network or group of networks that operate together as a single entity. This number is used to identify the network and its associated routes on the global internet.
+**BGP-Inteal** is a lightweight IP & ASN analysis toolkit built for Tier 1 SOC analysts. It supports fast lookups, threat enrichment, and optional integration with AbuseIPDB and other APIs.
 
-ASNs are typically assigned by regional internet registries (RIRs) such as ARIN (American Registry for Internet Numbers), RIPE (Réseaux IP Européens), and APNIC (Asia-Pacific Network Information Centre). These RIRs are responsible for managing the allocation of IP addresses and ASNs within their respective regions.
+## 🚀 Features
+- IP to ASN lookups
+- ASN org and prefix data
+- Optional enrichment via public APIs
+- AbuseIPDB integration (via script)
+- Modular structure, easy to extend
 
-ASNs are used in a variety of network protocols and technologies, including Border Gateway Protocol (BGP) and Multiprotocol Label Switching (MPLS). They are also used to identify and differentiate between different networks on the internet.
+## 🛠 Folder Structure
+core/ → Core lookup logic
+utils/ → Helper utilities
+scripts/ → Automation scripts
+tests/ → Basic tests
+docs/ → Future documentation
+config/ → Config templates
 
-<PRE>
-ASN-lookup.sh  - Use this script to identify which ASN the IP is on 
-$ ./asn-lookup.sh [insert IP address]
+## 📦 Usage
+Paste IPs into `core/lookup.py`, or use `scripts/run_report.py` to parse IP lists.
 
-ASN-cdir.sh - Use this script to work out which IP exist within an ASN
-$ ./asn-cdir.sh [AS Name]
-  
-ASN-ipasndistribution - read in a bunch of IP addresses from a .txt file, analyse and print out the results
-$ ./asn-ipasndistribution.sh  < ip_addresses.txt
+## 🔧 Setup
+1. Copy `config/config.ini.example` to `config/config.ini`
+2. Populate API keys if required
+3. Run scripts via GitHub Codespaces or locally
 
-ip_lookup.sh - Use this script to gather IP Geolocation information
-$ ./ip_lookup.sh [insert IP address]
-
-random_ip_generator.sh - Use this script to generate random public IPv4 addresses
-$ ./random_ip_generator.sh [number of IPs required}
-
-</PRE>
+## 🔐 Disclaimer
+Never commit real credentials. Always use `.gitignore` and `config.ini.example`.
