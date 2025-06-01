@@ -1,3 +1,6 @@
+![Python](https://img.shields.io/badge/python-3.8%2B-blue)
+![Status](https://img.shields.io/badge/status-active-brightgreen)
+
 # BGP-Intel
 
 **BGP-Inteal** is a lightweight IP & ASN analysis toolkit built for Tier 1 SOC analysts. It supports fast lookups, threat enrichment, and optional integration with AbuseIPDB and other APIs.
