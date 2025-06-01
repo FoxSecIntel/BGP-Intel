@@ -13,12 +13,12 @@
 - Modular structure, easy to extend
 
 ## 🛠 Folder Structure
-core/ → Core lookup logic
-utils/ → Helper utilities
-scripts/ → Automation scripts
-tests/ → Basic tests
-docs/ → Future documentation
-config/ → Config templates
+core/ → Core lookup logic  
+utils/ → Helper utilities  
+scripts/ → Automation scripts  
+tests/ → Basic tests  
+docs/ → Future documentation  
+config/ → Config templates  
 
 ## 📦 Usage
 Paste IPs into `core/lookup.py`, or use `scripts/run_report.py` to parse IP lists.
