@@ -4,7 +4,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 echo "[1/3] Python syntax"
-python3 -m py_compile core/lookup.py core/ip_lookup.py scripts/run_report.py
+python3 -m py_compile core/lookup.py core/ip_lookup.py scripts/run_report.py scripts/bgp_hijack_check.py scripts/rpki_check.py
 
 echo "[2/3] Shell syntax"
 for f in core/*.sh; do

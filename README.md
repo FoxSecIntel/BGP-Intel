@@ -44,6 +44,21 @@ python3 scripts/run_report.py -f ip_addresses.txt
 python3 scripts/run_report.py -f ip_addresses.txt --json
 ```
 
+Prefix origin mismatch check (hijack or leak signal):
+
+```bash
+python3 scripts/bgp_hijack_check.py --prefix 8.8.8.0/24 --expected-asn AS15169
+# or baseline CSV with lines: prefix,asn
+python3 scripts/bgp_hijack_check.py --baseline baseline.csv --json
+```
+
+RPKI validation check (prefix and origin ASN pair):
+
+```bash
+python3 scripts/rpki_check.py --prefix 8.8.8.0/24 --asn AS15169
+python3 scripts/rpki_check.py --baseline baseline.csv --json
+```
+
 Run tests:
 
 ```bash
