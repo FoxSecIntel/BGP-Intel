@@ -50,9 +50,17 @@ Run tests:
 pytest -q
 ```
 
+## Legacy shell helpers
+
+These scripts are available for quick command-line tasks:
+
+- `core/asn-lookup.sh`
+- `core/asn-cidr.sh`
+- `core/asn-ip-asn-distribution.sh`
+- `core/ip_lookup.sh`
+
 ## Current caveats
 
-- Some legacy shell scripts remain and are less consistent than Python entrypoints.
 - Public API rate limits may affect high-volume runs.
 
 ## Security notes

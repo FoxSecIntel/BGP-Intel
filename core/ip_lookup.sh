@@ -1,14 +1,18 @@
 #!/bin/bash
+set -euo pipefail
 
-# Check if an IP address is provided as a command-line argument
-if [ -z "$1" ]; then
-  echo "Please provide an IP address as an argument."
-  exit 1
-fi
+usage() {
+  echo "Usage: ip_lookup.sh <IP_ADDRESS>"
+}
 
-# Fetch the geolocation information for the given IP address
-ip=$1
-geo=$(curl -s https://ipapi.co/$ip/json/)
+[[ $# -eq 1 ]] || { usage; exit 1; }
+ip="$1"
 
-# Extract and print all the information from the JSON response
-echo $geo | jq -r '.'
+[[ "$ip" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$|: ]] || { echo "Invalid IP format"; exit 1; }
+command -v curl >/dev/null 2>&1 || { echo "curl command not found"; exit 1; }
+command -v jq >/dev/null 2>&1 || { echo "jq command not found"; exit 1; }
+
+geo="$(curl -sS --max-time 10 "https://ipapi.co/${ip}/json/" || true)"
+[[ -n "$geo" ]] || { echo "Lookup failed"; exit 1; }
+
+printf '%s\n' "$geo" | jq .
