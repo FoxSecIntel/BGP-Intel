@@ -3,30 +3,63 @@
 
 # BGP-Intel
 
-**BGP-Inteal** is a lightweight IP & ASN analysis toolkit built for Tier 1 SOC analysts. It supports fast lookups, threat enrichment, and optional integration with AbuseIPDB and other APIs.
+**BGP-Intel** is a lightweight IP and ASN analysis toolkit for Tier 1 SOC analysts.
 
-## 🚀 Features
-- IP to ASN lookups
-- ASN org and prefix data
+It supports fast enrichment, simple batch reporting, and modular extension for routing and ASN workflows.
+
+## Features
+
+- IP validation and metadata lookup
+- ASN-focused shell helpers
+- Batch report runner for IP lists
 - Optional enrichment via public APIs
-- AbuseIPDB integration (via script)
-- Modular structure, easy to extend
+- Basic unit tests for lookup validation
 
-## 🛠 Folder Structure
-core/ → Core lookup logic  
-utils/ → Helper utilities  
-scripts/ → Automation scripts  
-tests/ → Basic tests  
-docs/ → Future documentation  
-config/ → Config templates  
+## Repository structure
 
-## 📦 Usage
-Paste IPs into `core/lookup.py`, or use `scripts/run_report.py` to parse IP lists.
+- `core/` core lookup logic and shell helpers
+- `scripts/` batch and automation entrypoints
+- `tests/` unit tests
+- `config/` example configuration files
+- `docs/` future documentation
 
-## 🔧 Setup
-1. Copy `config/config.ini.example` to `config/config.ini`
-2. Populate API keys if required
-3. Run scripts via GitHub Codespaces or locally
+## Quick start
 
-## 🔐 Disclaimer
-Never commit real credentials. Always use `.gitignore` and `config.ini.example`.
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+Single IP lookup:
+
+```bash
+python3 core/ip_lookup.py 8.8.8.8
+```
+
+Batch report from file:
+
+```bash
+python3 scripts/run_report.py -f ip_addresses.txt
+python3 scripts/run_report.py -f ip_addresses.txt --json
+```
+
+Run tests:
+
+```bash
+pytest -q
+```
+
+## Current caveats
+
+- Some legacy shell scripts remain and are less consistent than Python entrypoints.
+- Public API rate limits may affect high-volume runs.
+
+## Security notes
+
+- Do not commit real API keys.
+- Keep secrets in local config only.
+
+## Licence
+
+MIT

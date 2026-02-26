@@ -1,29 +1,22 @@
 #!/usr/bin/env python3
-encoded_str = "wqhWaWN0b3J5IGlzIG5vdCB3aW5uaW5nIGZvciBvdXJzZWx2ZXMsIGJ1dCBmb3Igb3RoZXJzLiAtIFRoZSBNYW5kYWxvcmlhbsKoCg=="
+from __future__ import annotations
 
-import sys
-import requests
-import json
-import base64
+import argparse
+from core.lookup import lookup_ip_json
 
-def decode_and_print(encoded):
-    decoded_bytes = base64.b64decode(encoded)
-    decoded_str = decoded_bytes.decode('utf-8')
-    print(decoded_str)
 
-if '-m' in sys.argv:
-    decode_and_print(encoded_str)
-    sys.exit(0)
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Lookup IP metadata")
+    parser.add_argument("ip", help="IP address to lookup")
+    args = parser.parse_args()
 
-if len(sys.argv) != 2:
-    print("Please provide an IP address as an argument.")
-    sys.exit(1)
+    try:
+        print(lookup_ip_json(args.ip))
+        return 0
+    except Exception as exc:
+        print(f"Lookup failed: {exc}")
+        return 1
 
-ip = sys.argv[1]
-response = requests.get(f'https://ipapi.co/{ip}/json/')
 
-if response.status_code == 200:
-    geo = response.json()
-    print(json.dumps(geo, indent=2))
-else:
-    print("Failed to fetch the geolocation information.")
+if __name__ == "__main__":
+    raise SystemExit(main())
