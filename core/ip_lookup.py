@@ -27,6 +27,11 @@ HIGH_RISK_COUNTRIES = {"RU", "CN", "IR", "KP", "SY"}
 CLOUD_INDICATORS = ("AWS", "AMAZON", "GOOGLE", "AZURE", "HETZNER", "DIGITALOCEAN", "OVH")
 ANONYMISER_INDICATORS = ("VPN", "PROXY", "TOR", "MULLVAD")
 
+ANSI_RESET = "\033[0m"
+ANSI_BOLD = "\033[1m"
+ANSI_RED = "\033[31m"
+ANSI_GREEN = "\033[32m"
+
 
 def fetch_json(url: str, ip: str) -> Dict[str, Any]:
     headers = {"User-Agent": USER_AGENT}
@@ -38,6 +43,15 @@ def fetch_json(url: str, ip: str) -> Dict[str, Any]:
 def contains_indicator(text: str, indicators: tuple[str, ...]) -> bool:
     upper = text.upper()
     return any(indicator in upper for indicator in indicators)
+
+
+def bold(text: str) -> str:
+    return f"{ANSI_BOLD}{text}{ANSI_RESET}"
+
+
+def colour(text: str, *, red: bool) -> str:
+    c = ANSI_RED if red else ANSI_GREEN
+    return f"{c}{text}{ANSI_RESET}"
 
 
 def analyse_ip(ip: str) -> Dict[str, Any]:
@@ -94,6 +108,14 @@ def analyse_ip(ip: str) -> Dict[str, Any]:
     }
 
 
+def print_block(title: str, lines: list[str]) -> None:
+    print("+----------------------------------------------------------------+")
+    print(f"| {title}")
+    print("+----------------------------------------------------------------+")
+    for line in lines:
+        print(line)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Initialising SOC IP intelligence auditor")
     parser.add_argument("ip", help="IP address to analyse")
@@ -121,28 +143,53 @@ def main() -> int:
         print(json.dumps(result, separators=(",", ":")))
         return 0
 
-    print("Risk Profile:")
-    flags = []
+    print("==================================================================")
+    print(f"🔍 SOC IP Intelligence Auditor: {bold(result['ip'])}")
+    print("==================================================================")
+
+    jurisdiction_line = f"Jurisdiction: {result['country']}"
+    jurisdiction_coloured = colour(jurisdiction_line, red=result["is_high_risk"])
+
+    risk_flags = []
     if result["is_high_risk"]:
-        flags.append("[⚠️ HIGH-RISK JURISDICTION]")
+        risk_flags.append("[⚠️ HIGH-RISK JURISDICTION]")
     if result["is_cloud"]:
-        flags.append("[☁️ CLOUD/DATA CENTRE]")
+        risk_flags.append("[☁️ CLOUD/DATA CENTRE]")
     if result["is_anonymised"]:
-        flags.append("[🕵️ ANONYMISER DETECTED]")
+        risk_flags.append("[🕵️ ANONYMISER DETECTED]")
+    if not risk_flags:
+        risk_flags.append("[OK: NO HIGH-RISK FLAG TRIGGERED]")
 
-    if flags:
-        for flag in flags:
-            print(flag)
-    else:
-        print("[OK: NO HIGH-RISK FLAG TRIGGERED]")
+    print_block(
+        "📊 Risk Profile",
+        [
+            "Analysing complete, risk classification follows:",
+            jurisdiction_coloured,
+            f"High-Risk: {result['is_high_risk']}",
+            f"Cloud Footprint: {result['is_cloud']}",
+            f"Anonymised: {result['is_anonymised']}",
+            *risk_flags,
+        ],
+    )
 
-    print("Analysing complete, structured summary:")
-    print(f"IP: {result['ip']}")
-    print(f"Holder: {result['holder']}")
-    print(f"ASN: {result['asn']}")
-    print(f"Country: {result['country']}")
-    print(f"Abuse Contact: {result['abuse_email']}")
+    print_block(
+        "🏢 Network Identity",
+        [
+            f"IP: {bold(result['ip'])}",
+            f"Holder: {bold(result['holder'])}",
+            f"ASN: {result['asn']}",
+        ],
+    )
 
+    print_block(
+        "📩 Incident Response",
+        [
+            f"Abuse Contact: {result['abuse_email']}",
+            "Action: Use this mailbox for Authorised abuse escalation when required.",
+        ],
+    )
+
+    print("+----------------------------------------------------------------+")
     return 0
 
 
