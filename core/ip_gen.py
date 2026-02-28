@@ -2,9 +2,12 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import ipaddress
 import random
 import sys
+
+ENCODED_STR = "wqhWaWN0b3J5IGlzIG5vdCB3aW5uaW5nIGZvciBvdXJzZWx2ZXMsIGJ1dCBmb3Igb3RoZXJzLiAtIFRoZSBNYW5kYWxvcmlhbsKoCg=="
 
 MALICIOUS_TEST_PREFIXES = [
     "5.8.0.0/16",      # RU sample range
@@ -45,11 +48,26 @@ def random_ip_from_prefix(prefix: str) -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Initialising IP generator for SOC testing and Analysing pipeline inputs"
+        description="Initialising IP generator for SOC testing and Analysing pipeline inputs",
+        formatter_class=argparse.RawTextHelpFormatter,
+        epilog=(
+            "Help section:\n"
+            "  Standard mode: generates random global unicast IPv4 addresses.\n"
+            "  Malicious mode: generates IPs from RU, CN, IR, KP sample ranges for Authorised testing.\n\n"
+            "Examples:\n"
+            "  python3 core/ip_gen.py --count 5\n"
+            "  python3 core/ip_gen.py --count 5 --malicious\n"
+            "  python3 core/ip_gen.py -m"
+        ),
+    )
+    parser.add_argument(
+        "-m",
+        "--message",
+        action="store_true",
+        help="Print the hidden message and exit",
     )
     parser.add_argument(
         "--count",
-        required=True,
         type=parse_count,
         help="Number of IP addresses to generate",
     )
@@ -59,6 +77,13 @@ def main() -> int:
         help="Authorised testing mode: generate IPs from RU, CN, IR, KP sample ranges",
     )
     args = parser.parse_args()
+
+    if args.message:
+        print(base64.b64decode(ENCODED_STR).decode("utf-8", errors="replace"), end="")
+        return 0
+
+    if args.count is None:
+        parser.error("the following arguments are required: --count")
 
     for _ in range(args.count):
         if args.malicious:
