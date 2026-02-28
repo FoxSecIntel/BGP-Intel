@@ -38,11 +38,14 @@ python3 core/ip_lookup.py 8.8.8.8
 python3 core/ip_lookup.py 8.8.8.8 --json
 ```
 
-IP lookup data source notes:
+Enriched IP Triage Script:
 
+- Designed to give SOC analysts an immediate Risk Profile for suspicious IPs.
 - Uses RIPEstat Prefix Overview for ASN and holder intelligence.
 - Uses RIPEstat RIR Stats Country for country attribution.
-- Includes automated high-risk jurisdiction warning for: RU, CN, IR, KP, SY.
+- Uses RIPEstat Abuse Contact Finder for abuse mailbox intelligence.
+- Applies automated flags for high-risk jurisdictions: RU, CN, IR, KP, SY.
+- Applies cloud or data-centre detection and anonymiser detection heuristics.
 
 Batch report from file:
 

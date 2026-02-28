@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """
-IP Intel lookup utility for BGP-Intel.
+Enriched IP Triage Script for BGP-Intel.
 
-This script uses the RIPEstat Data API for reliable prefix and country intelligence.
-It also includes automated risk flagging for sanctioned or high-threat regions.
+This SOC intelligence auditor uses RIPEstat Data API endpoints for ASN, holder,
+country, and abuse-contact intelligence. It applies automated risk profiling,
+including high-risk jurisdiction checks, cloud or data-centre indicators,
+and anonymiser detection signals.
 """
 
 from __future__ import annotations
@@ -15,11 +17,15 @@ from typing import Any, Dict
 
 import requests
 
-USER_AGENT = "IP-Lookup-Intel-Tool/1.1"
+USER_AGENT = "IP-Intel-Audit/1.1"
 TIMEOUT_SECONDS = 5
 PREFIX_OVERVIEW_URL = "https://stat.ripe.net/data/prefix-overview/data.json"
 RIR_STATS_COUNTRY_URL = "https://stat.ripe.net/data/rir-stats-country/data.json"
+ABUSE_CONTACT_URL = "https://stat.ripe.net/data/abuse-contact-finder/data.json"
+
 HIGH_RISK_COUNTRIES = {"RU", "CN", "IR", "KP", "SY"}
+CLOUD_INDICATORS = ("AWS", "AMAZON", "GOOGLE", "AZURE", "HETZNER", "DIGITALOCEAN", "OVH")
+ANONYMISER_INDICATORS = ("VPN", "PROXY", "TOR", "MULLVAD")
 
 
 def fetch_json(url: str, ip: str) -> Dict[str, Any]:
@@ -29,25 +35,22 @@ def fetch_json(url: str, ip: str) -> Dict[str, Any]:
     return response.json()
 
 
-def extract_rir(block_desc: str) -> str:
-    known = ["AFRINIC", "APNIC", "ARIN", "LACNIC", "RIPE"]
-    upper = block_desc.upper()
-    for rir in known:
-        if rir in upper:
-            return rir
-    return "UNKNOWN"
+def contains_indicator(text: str, indicators: tuple[str, ...]) -> bool:
+    upper = text.upper()
+    return any(indicator in upper for indicator in indicators)
 
 
 def analyse_ip(ip: str) -> Dict[str, Any]:
-    # Initialising RIPEstat intelligence collection, Analysing prefix and country data.
+    # Initialising collection, Analysing RIPEstat intelligence sources.
     prefix_payload = fetch_json(PREFIX_OVERVIEW_URL, ip)
     country_payload = fetch_json(RIR_STATS_COUNTRY_URL, ip)
+    abuse_payload = fetch_json(ABUSE_CONTACT_URL, ip)
 
     prefix_data = prefix_payload.get("data", {})
     asns = prefix_data.get("asns", [])
 
-    asn_value: str = "UNKNOWN"
-    holder: str = "UNKNOWN"
+    asn_value = "UNKNOWN"
+    holder = "UNKNOWN"
     if isinstance(asns, list) and asns:
         first = asns[0] if isinstance(asns[0], dict) else {}
         asn_raw = first.get("asn")
@@ -55,65 +58,90 @@ def analyse_ip(ip: str) -> Dict[str, Any]:
         if asn_raw is not None:
             asn_value = str(asn_raw)
 
-    block = prefix_data.get("block", {})
-    block_desc = str(block.get("desc") or "") if isinstance(block, dict) else ""
-    rir = extract_rir(block_desc)
-
-    country_code = "UNKNOWN"
+    country = "UNKNOWN"
     country_data = country_payload.get("data", {})
     located = country_data.get("located_resources", [])
     if isinstance(located, list) and located:
         first_loc = located[0] if isinstance(located[0], dict) else {}
         code = first_loc.get("location")
         if isinstance(code, str) and code:
-            country_code = code.upper()
+            country = code.upper()
 
-    is_high_risk = country_code in HIGH_RISK_COUNTRIES
+    abuse_email = "UNKNOWN"
+    abuse_data = abuse_payload.get("data", {})
+    abuse_contacts = abuse_data.get("abuse_contacts", [])
+    if isinstance(abuse_contacts, list) and abuse_contacts:
+        first_contact = abuse_contacts[0]
+        if isinstance(first_contact, str) and first_contact.strip():
+            abuse_email = first_contact.strip()
+
+    usage_type = str(prefix_data.get("type") or "unknown")
+    detection_text = f"{holder} {usage_type}"
+
+    is_high_risk = country in HIGH_RISK_COUNTRIES
+    is_cloud = contains_indicator(holder, CLOUD_INDICATORS)
+    is_anonymised = contains_indicator(detection_text, ANONYMISER_INDICATORS)
 
     return {
         "ip": ip,
         "asn": asn_value,
         "holder": holder,
-        "country_code": country_code,
-        "rir": rir,
+        "country": country,
         "is_high_risk": is_high_risk,
+        "is_cloud": is_cloud,
+        "is_anonymised": is_anonymised,
+        "abuse_email": abuse_email,
     }
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Initialising IP Intel lookup using RIPEstat")
-    parser.add_argument("ip", help="IP address to lookup")
-    parser.add_argument("--json", action="store_true", help="Output flat JSON only")
+    parser = argparse.ArgumentParser(description="Initialising SOC IP intelligence auditor")
+    parser.add_argument("ip", help="IP address to analyse")
+    parser.add_argument("--json", action="store_true", help="Output a single JSON object")
     args = parser.parse_args()
 
     try:
         result = analyse_ip(args.ip)
     except requests.exceptions.RequestException as exc:
-        msg = "Authorised network request failed, the RIPEstat service is unreachable."
+        message = "Authorised request failed, network or RIPEstat service is unreachable."
         if args.json:
-            print(json.dumps({"error": msg, "details": str(exc)}))
+            print(json.dumps({"error": message, "details": str(exc)}, separators=(",", ":")))
         else:
-            print(msg)
+            print(message)
             print(f"Details: {exc}")
         return 1
     except Exception as exc:
         if args.json:
-            print(json.dumps({"error": str(exc)}))
+            print(json.dumps({"error": str(exc)}, separators=(",", ":")))
         else:
-            print(f"Lookup failed: {exc}")
+            print(f"Analysis failed: {exc}")
         return 1
 
     if args.json:
         print(json.dumps(result, separators=(",", ":")))
         return 0
 
-    print("Analysing complete, result summary:")
+    print("Risk Profile:")
+    flags = []
+    if result["is_high_risk"]:
+        flags.append("[⚠️ HIGH-RISK JURISDICTION]")
+    if result["is_cloud"]:
+        flags.append("[☁️ CLOUD/DATA CENTRE]")
+    if result["is_anonymised"]:
+        flags.append("[🕵️ ANONYMISER DETECTED]")
+
+    if flags:
+        for flag in flags:
+            print(flag)
+    else:
+        print("[OK: NO HIGH-RISK FLAG TRIGGERED]")
+
+    print("Analysing complete, structured summary:")
     print(f"IP: {result['ip']}")
     print(f"Holder: {result['holder']}")
     print(f"ASN: {result['asn']}")
-    print(f"Location: {result['country_code']} ({result['rir']})")
-    if result["is_high_risk"]:
-        print("[⚠️ WARNING: HIGH-RISK JURISDICTION DETECTED]")
+    print(f"Country: {result['country']}")
+    print(f"Abuse Contact: {result['abuse_email']}")
 
     return 0
 
