@@ -27,6 +27,37 @@ HIGH_RISK_COUNTRIES = {"RU", "CN", "IR", "KP", "SY"}
 CLOUD_INDICATORS = ("AWS", "AMAZON", "GOOGLE", "AZURE", "HETZNER", "DIGITALOCEAN", "OVH")
 ANONYMISER_INDICATORS = ("VPN", "PROXY", "TOR", "MULLVAD")
 
+COUNTRY_NAMES = {
+    "GB": "United Kingdom",
+    "US": "United States",
+    "NL": "Netherlands",
+    "DE": "Germany",
+    "FR": "France",
+    "CH": "Switzerland",
+    "BE": "Belgium",
+    "ES": "Spain",
+    "IT": "Italy",
+    "SE": "Sweden",
+    "NO": "Norway",
+    "DK": "Denmark",
+    "PL": "Poland",
+    "IE": "Ireland",
+    "RU": "Russia",
+    "CN": "China",
+    "IR": "Iran",
+    "KP": "North Korea",
+    "SY": "Syria",
+}
+
+RIR_DISPLAY_NAMES = {
+    "AFRINIC": "AFRINIC",
+    "APNIC": "APNIC",
+    "ARIN": "ARIN",
+    "LACNIC": "LACNIC",
+    "RIPE": "RIPE NCC",
+    "UNKNOWN": "UNKNOWN",
+}
+
 ANSI_RESET = "\033[0m"
 ANSI_BOLD = "\033[1m"
 ANSI_RED = "\033[31m"
@@ -43,6 +74,20 @@ def fetch_json(url: str, ip: str) -> Dict[str, Any]:
 def contains_indicator(text: str, indicators: tuple[str, ...]) -> bool:
     upper = text.upper()
     return any(indicator in upper for indicator in indicators)
+
+
+def extract_rir(prefix_data: Dict[str, Any], abuse_data: Dict[str, Any]) -> str:
+    authoritative_rir = str(abuse_data.get("authoritative_rir") or "").upper()
+    if authoritative_rir in {"AFRINIC", "APNIC", "ARIN", "LACNIC", "RIPE"}:
+        return authoritative_rir
+
+    block = prefix_data.get("block", {})
+    block_desc = str(block.get("desc") or "") if isinstance(block, dict) else ""
+    upper = block_desc.upper()
+    for rir in ("AFRINIC", "APNIC", "ARIN", "LACNIC", "RIPE"):
+        if rir in upper:
+            return rir
+    return "UNKNOWN"
 
 
 def bold(text: str) -> str:
@@ -95,25 +140,22 @@ def analyse_ip(ip: str) -> Dict[str, Any]:
     is_high_risk = country in HIGH_RISK_COUNTRIES
     is_cloud = contains_indicator(holder, CLOUD_INDICATORS)
     is_anonymised = contains_indicator(detection_text, ANONYMISER_INDICATORS)
+    country_name = COUNTRY_NAMES.get(country, "Unknown")
+    rir_code = extract_rir(prefix_data, abuse_data)
+    rir_name = RIR_DISPLAY_NAMES.get(rir_code, rir_code)
 
     return {
         "ip": ip,
         "asn": asn_value,
         "holder": holder,
         "country": country,
+        "country_name": country_name,
+        "rir": rir_name,
         "is_high_risk": is_high_risk,
         "is_cloud": is_cloud,
         "is_anonymised": is_anonymised,
         "abuse_email": abuse_email,
     }
-
-
-def print_block(title: str, lines: list[str]) -> None:
-    print("+----------------------------------------------------------------+")
-    print(f"| {title}")
-    print("+----------------------------------------------------------------+")
-    for line in lines:
-        print(line)
 
 
 def main() -> int:
@@ -143,53 +185,40 @@ def main() -> int:
         print(json.dumps(result, separators=(",", ":")))
         return 0
 
-    print("==================================================================")
-    print(f"🔍 SOC IP Intelligence Auditor: {bold(result['ip'])}")
-    print("==================================================================")
+    top_border = "==============================================================="
+    section_border = "---------------------------------------------------------------"
 
-    jurisdiction_line = f"Jurisdiction: {result['country']}"
+    risk_label = "High Risk" if result["is_high_risk"] else "Low Risk"
+    jurisdiction_line = (
+        f"[{'⚠️' if result['is_high_risk'] else '✅'}] JURISDICTION: "
+        f"{result['country']} ({result['country_name']}) - {risk_label}"
+    )
     jurisdiction_coloured = colour(jurisdiction_line, red=result["is_high_risk"])
 
-    risk_flags = []
-    if result["is_high_risk"]:
-        risk_flags.append("[⚠️ HIGH-RISK JURISDICTION]")
-    if result["is_cloud"]:
-        risk_flags.append("[☁️ CLOUD/DATA CENTRE]")
-    if result["is_anonymised"]:
-        risk_flags.append("[🕵️ ANONYMISER DETECTED]")
-    if not risk_flags:
-        risk_flags.append("[OK: NO HIGH-RISK FLAG TRIGGERED]")
+    infra_type = "Cloud / Data Centre" if result["is_cloud"] else "Residential / Consumer ISP"
+    privacy_text = "Proxy/VPN indicators detected" if result["is_anonymised"] else "No Proxy/VPN detected"
 
-    print_block(
-        "📊 Risk Profile",
-        [
-            "Analysing complete, risk classification follows:",
-            jurisdiction_coloured,
-            f"High-Risk: {result['is_high_risk']}",
-            f"Cloud Footprint: {result['is_cloud']}",
-            f"Anonymised: {result['is_anonymised']}",
-            *risk_flags,
-        ],
-    )
-
-    print_block(
-        "🏢 Network Identity",
-        [
-            f"IP: {bold(result['ip'])}",
-            f"Holder: {bold(result['holder'])}",
-            f"ASN: {result['asn']}",
-        ],
-    )
-
-    print_block(
-        "📩 Incident Response",
-        [
-            f"Abuse Contact: {result['abuse_email']}",
-            "Action: Use this mailbox for Authorised abuse escalation when required.",
-        ],
-    )
-
-    print("+----------------------------------------------------------------+")
+    print(top_border)
+    print(f"🔍 IP INTEL REPORT: {bold(result['ip'])}")
+    print(top_border)
+    print()
+    print("📊 RISK PROFILE")
+    print(section_border)
+    print(jurisdiction_coloured)
+    print(f"[🏠] TYPE        : {infra_type}")
+    print(f"[🛡️] PRIVACY     : {privacy_text}")
+    print()
+    print("🏢 NETWORK IDENTITY")
+    print(section_border)
+    print(f"HOLDER: {bold(result['holder'])}")
+    print(f"ASN   : {result['asn']}")
+    print(f"RIR   : {result['rir']}")
+    print()
+    print("📩 INCIDENT RESPONSE")
+    print(section_border)
+    print(f"ABUSE : {result['abuse_email']}")
+    print()
+    print(top_border)
     return 0
 
 
