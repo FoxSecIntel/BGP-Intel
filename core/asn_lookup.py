@@ -1,97 +1,222 @@
 #!/usr/bin/env python3
+"""
+ASN Network Integrity Auditor for BGP-Intel.
+
+This standalone script analyses ASN intelligence using RIPEstat Data API endpoints.
+It evaluates entity context, routing scope, upstream transit posture, and risk signals.
+"""
+
 from __future__ import annotations
 
 import argparse
 import json
 import re
-import subprocess
 import sys
-from typing import Dict
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List
 
-ENCODED_STR = "wqhWaWN0b3J5IGlzIG5vdCB3aW5uaW5nIGZvciBvdXJzZWx2ZXMsIGJ1dCBmb3Igb3RoZXJzLiAtIFRoZSBNYW5kYWxvcmlhbsKoCg=="
-VERSION = "1.0.0"
-IPV4_RE = re.compile(r"^([0-9]{1,3}\.){3}[0-9]{1,3}$")
+import requests
 
+USER_AGENT = "ASN-Intel-Audit/1.1"
+TIMEOUT_SECONDS = 5
 
-def run_cmd(cmd: list[str]) -> str:
-    proc = subprocess.run(cmd, capture_output=True, text=True)
-    if proc.returncode != 0:
-        return ""
-    return proc.stdout
+AS_OVERVIEW_URL = "https://stat.ripe.net/data/as-overview/data.json"
+ANNOUNCED_PREFIXES_URL = "https://stat.ripe.net/data/announced-prefixes/data.json"
+ASN_NEIGHBOURS_URL = "https://stat.ripe.net/data/asn-neighbours/data.json"
+RIS_FIRST_LAST_SEEN_URL = "https://stat.ripe.net/data/ris-first-last-seen/data.json"
 
+HIGH_RISK_COUNTRIES = {"RU", "CN", "IR", "KP", "SY"}
+COUNTRY_TAIL_RE = re.compile(r",\s*([A-Z]{2})\s*$")
 
-def parse_asn_line(line: str) -> Dict[str, str]:
-    parts = line.split("|")
-    if len(parts) < 7:
-        return {"asn": "", "country": "", "owner": ""}
-    asn = parts[0].strip()
-    country = parts[3].strip()
-    owner = parts[6].strip()
-    return {"asn": asn, "country": country, "owner": owner}
+ANSI_RESET = "\033[0m"
+ANSI_BOLD = "\033[1m"
+ANSI_RED = "\033[31m"
+ANSI_GREEN = "\033[32m"
 
 
-def lookup_reverse_host(ip: str) -> str:
-    out = run_cmd(["host", ip])
-    if not out:
-        return ""
-    m = re.search(r"pointer\s+([^\s.]+(?:\.[^\s.]+)*)\.?", out)
-    return m.group(1) if m else ""
+def normalise_asn(value: str) -> str:
+    v = value.strip().upper()
+    return v if v.startswith("AS") else f"AS{v}"
+
+
+def parse_iso_time(value: str) -> datetime | None:
+    try:
+        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt
+    except Exception:
+        return None
+
+
+def fetch_json(url: str, asn: str) -> Dict[str, Any]:
+    headers = {"User-Agent": USER_AGENT}
+    response = requests.get(url, params={"resource": asn}, headers=headers, timeout=TIMEOUT_SECONDS)
+    response.raise_for_status()
+    return response.json().get("data", {})
+
+
+def infer_registration_country(holder: str) -> str:
+    match = COUNTRY_TAIL_RE.search(holder or "")
+    if match:
+        return match.group(1)
+    return "UNKNOWN"
+
+
+def get_upstreams(neighbours: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    left = [n for n in neighbours if str(n.get("type", "")).lower() == "left"]
+    left.sort(key=lambda x: int(x.get("power", 0)), reverse=True)
+    out: List[Dict[str, Any]] = []
+    for n in left[:3]:
+        out.append(
+            {
+                "asn": normalise_asn(str(n.get("asn", "UNKNOWN"))),
+                "power": int(n.get("power", 0)),
+                "v4_peers": int(n.get("v4_peers", 0)),
+                "v6_peers": int(n.get("v6_peers", 0)),
+            }
+        )
+    return out
+
+
+def analyse_asn(asn_input: str) -> Dict[str, Any]:
+    asn = normalise_asn(asn_input)
+
+    # Initialising data collection, Analysing RIPEstat sources.
+    overview = fetch_json(AS_OVERVIEW_URL, asn)
+    announced = fetch_json(ANNOUNCED_PREFIXES_URL, asn)
+    neighbours = fetch_json(ASN_NEIGHBOURS_URL, asn)
+    first_last_seen = fetch_json(RIS_FIRST_LAST_SEEN_URL, asn)
+
+    holder = str(overview.get("holder") or "UNKNOWN")
+    announced_status = bool(overview.get("announced", False))
+
+    prefixes = announced.get("prefixes", [])
+    prefix_count = len(prefixes) if isinstance(prefixes, list) else 0
+
+    neigh_list = neighbours.get("neighbours", [])
+    neigh_list = neigh_list if isinstance(neigh_list, list) else []
+    upstreams_top3 = get_upstreams(neigh_list)
+
+    resources = first_last_seen.get("resources", [])
+    first_seen_time = "UNKNOWN"
+    last_seen_time = "UNKNOWN"
+
+    if isinstance(resources, list) and resources:
+        times = []
+        for r in resources:
+            if not isinstance(r, dict):
+                continue
+            first = str((r.get("first") or {}).get("time") or "")
+            last = str((r.get("last") or {}).get("time") or "")
+            if first:
+                times.append(("first", first))
+            if last:
+                times.append(("last", last))
+
+        first_candidates = [t for k, t in times if k == "first"]
+        last_candidates = [t for k, t in times if k == "last"]
+        if first_candidates:
+            first_seen_time = min(first_candidates)
+        if last_candidates:
+            last_seen_time = max(last_candidates)
+
+    registration_country = infer_registration_country(holder)
+    is_high_risk = registration_country in HIGH_RISK_COUNTRIES
+
+    newly_established = False
+    first_seen_dt = parse_iso_time(first_seen_time) if first_seen_time != "UNKNOWN" else None
+    if first_seen_dt is not None:
+        now = datetime.now(timezone.utc)
+        newly_established = first_seen_dt >= (now - timedelta(days=365))
+
+    return {
+        "asn": asn,
+        "holder": holder,
+        "registration_country": registration_country,
+        "announced": announced_status,
+        "managed_prefix_count": prefix_count,
+        "upstreams_top3": upstreams_top3,
+        "first_seen": first_seen_time,
+        "last_seen": last_seen_time,
+        "is_high_risk": is_high_risk,
+        "is_newly_established": newly_established,
+    }
+
+
+def colour_line(line: str, red: bool) -> str:
+    colour = ANSI_RED if red else ANSI_GREEN
+    return f"{colour}{line}{ANSI_RESET}"
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="ASN lookup for an IPv4 address")
-    parser.add_argument("ip", help="IPv4 address or m")
-    parser.add_argument("--json", "-j", action="store_true", help="Output JSON")
-    parser.add_argument("--version", "-v", action="store_true", help="Show version")
+    parser = argparse.ArgumentParser(description="Initialising ASN Network Integrity Auditor")
+    parser.add_argument("asn", help="ASN value, for example AS15169 or 15169")
+    parser.add_argument("--json", action="store_true", help="Output machine-readable JSON")
     args = parser.parse_args()
 
-    if args.version:
-        print(f"asn_lookup.py {VERSION}")
-        return 0
-
-    if args.ip == "m":
-        import base64
-
-        print(base64.b64decode(ENCODED_STR).decode("utf-8", errors="replace"), end="")
-        return 0
-
-    ip = args.ip.strip()
-    if not IPV4_RE.match(ip):
-        print("Invalid IPv4 address")
+    try:
+        result = analyse_asn(args.asn)
+    except requests.exceptions.RequestException as exc:
+        message = "Authorised request failed, network or RIPEstat service is unreachable."
+        if args.json:
+            print(json.dumps({"error": message, "details": str(exc)}, separators=(",", ":")))
+        else:
+            print(message)
+            print(f"Details: {exc}")
         return 1
-
-    asn_out = run_cmd(["whois", "-h", "v4.whois.cymru.com", f" -v {ip}"])
-    if not asn_out.strip():
-        print(f"ASN not found for IP address: {ip}")
+    except Exception as exc:
+        if args.json:
+            print(json.dumps({"error": str(exc)}, separators=(",", ":")))
+        else:
+            print(f"Analysis failed: {exc}")
         return 1
-
-    lines = [ln for ln in asn_out.splitlines() if ln.strip()]
-    asn_line = lines[1] if len(lines) > 1 else ""
-    parsed = parse_asn_line(asn_line)
-
-    reverse_host = ""
-    if subprocess.run(["bash", "-lc", "command -v host >/dev/null 2>&1"]).returncode == 0:
-        reverse_host = lookup_reverse_host(ip)
 
     if args.json:
-        print(
-            json.dumps(
-                {
-                    "ip": ip,
-                    "asn": parsed["asn"],
-                    "country": parsed["country"],
-                    "owner": parsed["owner"],
-                    "reverse_host": reverse_host,
-                }
-            )
-        )
+        print(json.dumps(result, separators=(",", ":")))
         return 0
 
+    border = "==============================================================="
+    sep = "---------------------------------------------------------------"
+
+    print(border)
+    print(f"ASN NETWORK INTEGRITY AUDITOR: {ANSI_BOLD}{result['asn']}{ANSI_RESET}")
+    print(border)
     print()
-    print(asn_out.rstrip())
+
+    print("🏢 ENTITY INFO")
+    print(sep)
+    print(f"Holder              : {ANSI_BOLD}{result['holder']}{ANSI_RESET}")
+    print(f"Registration Country: {result['registration_country']}")
+    print(f"Announced Status    : {result['announced']}")
     print()
-    if reverse_host:
-        print(f"Reverse host: {reverse_host}")
+
+    print("🌐 ROUTING & PEERING")
+    print(sep)
+    print(f"Managed Prefixes: {result['managed_prefix_count']}")
+    if result["upstreams_top3"]:
+        print("Top 3 Upstreams (Left Neighbours):")
+        for idx, up in enumerate(result["upstreams_top3"], start=1):
+            print(f"  {idx}. {up['asn']} | power={up['power']} | v4={up['v4_peers']} | v6={up['v6_peers']}")
+    else:
+        print("Top 3 Upstreams (Left Neighbours): none found")
+    print(f"First Seen: {result['first_seen']}")
+    print(f"Last Seen : {result['last_seen']}")
+    print()
+
+    print("📊 RISK AUDIT")
+    print(sep)
+    risk_line = f"Jurisdiction Risk: {result['registration_country']}"
+    print(colour_line(risk_line, red=result["is_high_risk"]))
+    if result["is_high_risk"]:
+        print(f"{ANSI_RED}{ANSI_BOLD}[⚠️ HIGH-RISK JURISDICTION]{ANSI_RESET}")
+
+    if result["is_newly_established"]:
+        print(f"{ANSI_BOLD}[🆕 NEWLY ESTABLISHED]{ANSI_RESET}")
+    else:
+        print("[OK] Longevity check: not newly established")
+
+    print(border)
     return 0
 
 
