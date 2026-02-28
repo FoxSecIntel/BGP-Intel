@@ -3,22 +3,23 @@
 
 # BGP-Intel
 
-**BGP-Intel** is a lightweight IP and ASN analysis toolkit for Tier 1 SOC analysts.
+**BGP-Intel** is a lightweight IP and ASN intelligence toolkit for Tier 1 SOC analysts.
 
-It supports fast enrichment, simple batch reporting, and modular extension for routing and ASN workflows.
+It is designed for fast triage, routing integrity checks, and repeatable analyst workflows.
 
 ## Features
 
-- IP validation and metadata lookup
-- ASN-focused shell helpers
+- Enriched IP triage with risk profiling
+- BGP origin mismatch checks for hijack or leak signals
+- RPKI validation checks for prefix and origin pairs
 - Batch report runner for IP lists
-- Optional enrichment via public APIs
-- Basic unit tests for lookup validation
+- Lightweight utilities for analyst workflows
 
 ## Repository structure
 
-- `core/` core lookup logic and shell helpers
-- `scripts/` batch and automation entrypoints
+- `core/` core Python logic
+- `core/archive/` archived shell utilities
+- `scripts/` routing checks and automation entrypoints
 - `tests/` unit tests
 - `config/` example configuration files
 - `docs/` future documentation
@@ -31,30 +32,54 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Single IP lookup:
+## Enriched IP Triage Script
+
+Primary script: `core/ip_lookup.py`
+
+This script is intended to give SOC analysts an immediate risk profile for any suspicious IP.
+It combines multiple RIPEstat data sources and applies practical detection heuristics in one pass.
+
+Data sources:
+
+- RIPEstat Prefix Overview: ASN and holder intelligence
+- RIPEstat RIR Stats Country: country attribution
+- RIPEstat Abuse Contact Finder: abuse contact intelligence
+
+Intelligence flags:
+
+- High-risk jurisdiction: `RU`, `CN`, `IR`, `KP`, `SY`
+- Cloud or data-centre footprint: `AWS`, `Amazon`, `Google`, `Azure`, `Hetzner`, `DigitalOcean`, `OVH`
+- Anonymiser indicators: `VPN`, `Proxy`, `Tor`, `Mullvad`
+
+Example usage:
 
 ```bash
 python3 core/ip_lookup.py 8.8.8.8
 python3 core/ip_lookup.py 8.8.8.8 --json
 ```
 
-Enriched IP Triage Script:
+Example text output:
 
-- Designed to give SOC analysts an immediate Risk Profile for suspicious IPs.
-- Uses RIPEstat Prefix Overview for ASN and holder intelligence.
-- Uses RIPEstat RIR Stats Country for country attribution.
-- Uses RIPEstat Abuse Contact Finder for abuse mailbox intelligence.
-- Applies automated flags for high-risk jurisdictions: RU, CN, IR, KP, SY.
-- Applies cloud or data-centre detection and anonymiser detection heuristics.
-
-Batch report from file:
-
-```bash
-python3 scripts/run_report.py -f ip_addresses.txt
-python3 scripts/run_report.py -f ip_addresses.txt --json
+```text
+Risk Profile:
+[☁️ CLOUD/DATA CENTRE]
+Analysing complete, structured summary:
+IP: 8.8.8.8
+Holder: GOOGLE - Google LLC
+ASN: 15169
+Country: US
+Abuse Contact: network-abuse@google.com
 ```
 
-Prefix origin mismatch check (hijack or leak signal):
+Example JSON output:
+
+```json
+{"ip":"8.8.8.8","asn":"15169","holder":"GOOGLE - Google LLC","country":"US","is_high_risk":false,"is_cloud":true,"is_anonymised":false,"abuse_email":"network-abuse@google.com"}
+```
+
+## Routing Integrity Checks
+
+### BGP hijack or leak signal check
 
 ```bash
 python3 scripts/bgp_hijack_check.py --prefix 8.8.8.0/24 --expected-asn AS15169
@@ -62,39 +87,40 @@ python3 scripts/bgp_hijack_check.py --prefix 8.8.8.0/24 --expected-asn AS15169
 python3 scripts/bgp_hijack_check.py --baseline baseline.csv --json
 ```
 
-Data source notes for hijack checks:
+Data source notes:
 
 - Primary source: RIPEstat Announced Prefixes endpoint
 - Fallback source: RIPEstat RIS Prefixes endpoint
-- Requests include a custom user agent for stable API handling
+- Requests use a custom user agent for stable API handling
 
 Example baseline file:
 
 - `baseline.csv.example`
 
-RPKI validation check (prefix and origin ASN pair):
+### RPKI validation check
 
 ```bash
 python3 scripts/rpki_check.py --prefix 8.8.8.0/24 --asn AS15169
 python3 scripts/rpki_check.py --baseline baseline.csv --json
 ```
 
-Run tests:
+## Batch reporting
 
 ```bash
-pytest -q
+python3 scripts/run_report.py -f ip_addresses.txt
+python3 scripts/run_report.py -f ip_addresses.txt --json
 ```
 
-## Core Shell Utilities
-
-These shell utilities are actively maintained for fast command-line enrichment and analyst workflows.
+## Python Tooling Index
 
 | Script | Primary Use Case | Input | Output | JSON Flag |
 |---|---|---|---|---|
-| `core/archive/asn-lookup.sh` | Resolve ASN details for an IPv4 address | Single IPv4 | WHOIS lookup output + optional reverse host | Yes |
-| `core/archive/asn-cidr.sh` | Retrieve announced IPv4 and IPv6 prefixes for an ASN | Single ASN | Prefix list file + prefix-length summary | Yes |
-| `core/archive/asn-ip-asn-distribution.sh` | Build ASN distribution from a list of IPv4 addresses | Text file of IPv4s | Counted ASN distribution table | Yes |
-| `core/archive/ip_lookup.sh` | Quick IP geodata enrichment from public API | Single IPv4/IPv6 | Formatted metadata or JSON | Yes |
+| `core/ip_lookup.py` | Enriched IP triage with risk profile flags | Single IPv4/IPv6 | Structured text or flat JSON profile | Yes |
+| `scripts/bgp_hijack_check.py` | Expected origin ASN mismatch detection | Prefix+ASN or baseline file | Signal status table or JSON | Yes |
+| `scripts/rpki_check.py` | Route Origin Authorisation validation | Prefix+ASN or baseline file | Validity status table or JSON | Yes |
+| `scripts/run_report.py` | Batch enrichment workflow for IP lists | File of IPs | Batch report output, optional JSON | Yes |
+| `core/asn_path_finder.py` | ASN path and relationship analysis utility | ASN input | Console analysis output | No |
+| `core/random-ip-generator.py` | Generate random IP samples for testing | Optional count or defaults | Generated IP list | No |
 
 ## Current caveats
 
