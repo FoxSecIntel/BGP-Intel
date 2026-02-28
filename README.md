@@ -90,6 +90,28 @@ Example JSON output:
 {"ip":"8.8.8.8","asn":"15169","holder":"GOOGLE - Google LLC","country":"US","country_name":"United States","rir":"ARIN","is_high_risk":false,"is_cloud":true,"is_anonymised":false,"abuse_email":"network-abuse@google.com"}
 ```
 
+## ASN Integrity Audit Script
+
+Primary script: `core/asn_integrity_audit.py`
+
+This script performs ASN-centric network integrity analysis using RIPEstat, with structured checks for entity context, upstream relationships, routing scope, and risk posture.
+
+Key capabilities:
+
+- Resolves ASN input directly, and accepts IP input with automatic ASN resolution.
+- Validates announcement status and holder context.
+- Counts announced prefixes to estimate network scope.
+- Extracts top upstream transit neighbours from Left-side peer data.
+- Flags high-risk jurisdictions and newly established ASNs.
+
+Example usage:
+
+```bash
+python3 core/asn_integrity_audit.py AS15169
+python3 core/asn_integrity_audit.py 8.8.8.8
+python3 core/asn_integrity_audit.py AS15169 --json
+```
+
 ## Routing Integrity Checks
 
 ### BGP hijack or leak signal check
@@ -129,6 +151,7 @@ python3 scripts/run_report.py -f ip_addresses.txt --json
 | Script | Primary Use Case | Input | Output | JSON Flag |
 |---|---|---|---|---|
 | `core/ip_lookup.py` | Enriched IP triage with risk profile flags | Single IPv4/IPv6 | Structured text or flat JSON profile | Yes |
+| `core/asn_integrity_audit.py` | ASN network integrity auditing with upstream and risk analysis | ASN or IPv4/IPv6 | Structured audit report or JSON object | Yes |
 | `scripts/bgp_hijack_check.py` | Expected origin ASN mismatch detection | Prefix+ASN or baseline file | Signal status table or JSON | Yes |
 | `scripts/rpki_check.py` | Route Origin Authorisation validation | Prefix+ASN or baseline file | Validity status table or JSON | Yes |
 | `scripts/run_report.py` | Batch enrichment workflow for IP lists | File of IPs | Batch report output, optional JSON | Yes |
