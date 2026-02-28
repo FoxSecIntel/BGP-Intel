@@ -81,10 +81,10 @@ These shell utilities are actively maintained for fast command-line enrichment a
 
 | Script | Primary Use Case | Input | Output | JSON Flag |
 |---|---|---|---|---|
-| `core/asn-lookup.sh` | Resolve ASN details for an IPv4 address | Single IPv4 | WHOIS lookup output + optional reverse host | No |
-| `core/asn-cidr.sh` | Retrieve announced IPv4 and IPv6 prefixes for an ASN | Single ASN | Prefix list file + prefix-length summary | No |
-| `core/asn-ip-asn-distribution.sh` | Build ASN distribution from a list of IPv4 addresses | Text file of IPv4s | Counted ASN distribution table | No |
-| `core/ip_lookup.sh` | Quick IP geodata enrichment from public API | Single IPv4/IPv6 | Formatted JSON metadata | No |
+| `core/asn-lookup.sh` | Resolve ASN details for an IPv4 address | Single IPv4 | WHOIS lookup output + optional reverse host | Yes |
+| `core/asn-cidr.sh` | Retrieve announced IPv4 and IPv6 prefixes for an ASN | Single ASN | Prefix list file + prefix-length summary | Yes |
+| `core/asn-ip-asn-distribution.sh` | Build ASN distribution from a list of IPv4 addresses | Text file of IPv4s | Counted ASN distribution table | Yes |
+| `core/ip_lookup.sh` | Quick IP geodata enrichment from public API | Single IPv4/IPv6 | Formatted metadata or JSON | Yes |
 
 ## Current caveats
 
