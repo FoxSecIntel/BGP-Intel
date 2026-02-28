@@ -149,6 +149,32 @@ Example JSON output:
 {"input":"AS15169","resolved_from_ip":false,"asn":"AS15169","holder":"GOOGLE - Google LLC","registration_country":"UNKNOWN","announced":true,"managed_prefix_count":1277,"upstreams_top3":[{"asn":"AS6453","power":469,"v4_peers":39513,"v6_peers":1808},{"asn":"AS1299","power":430,"v4_peers":42492,"v6_peers":6977},{"asn":"AS6939","power":379,"v4_peers":8988,"v6_peers":14457}],"first_seen":"2000-08-18T08:00:00","last_seen":"2024-09-23T16:00:00","is_high_risk":false,"is_newly_established":false}
 ```
 
+## IP Generation Script
+
+Primary script: `core/ip_gen.py`
+
+This utility generates newline-delimited IPv4 samples for analyst pipelines.
+It supports normal mode for random global unicast addresses, and a malicious testing mode for controlled risk-flag validation.
+
+Example usage:
+
+```bash
+python3 core/ip_gen.py --count 5
+python3 core/ip_gen.py --count 5 --malicious
+python3 core/ip_gen.py -m
+```
+
+Example output, malicious command:
+
+```text
+$ python3 core/ip_gen.py --count 5 --malicious
+175.45.178.166
+5.184.0.27
+36.112.44.201
+5.160.22.114
+175.45.176.93
+```
+
 ## Routing Integrity Checks
 
 ### BGP hijack or leak signal check
