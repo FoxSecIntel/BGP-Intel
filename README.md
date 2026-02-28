@@ -52,6 +52,10 @@ python3 scripts/bgp_hijack_check.py --prefix 8.8.8.0/24 --expected-asn AS15169
 python3 scripts/bgp_hijack_check.py --baseline baseline.csv --json
 ```
 
+Example baseline file:
+
+- `baseline.csv.example`
+
 RPKI validation check (prefix and origin ASN pair):
 
 ```bash
