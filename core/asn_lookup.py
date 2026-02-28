@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import ipaddress
 import re
 import sys
 from datetime import datetime, timedelta, timezone
@@ -24,6 +25,7 @@ AS_OVERVIEW_URL = "https://stat.ripe.net/data/as-overview/data.json"
 ANNOUNCED_PREFIXES_URL = "https://stat.ripe.net/data/announced-prefixes/data.json"
 ASN_NEIGHBOURS_URL = "https://stat.ripe.net/data/asn-neighbours/data.json"
 RIS_FIRST_LAST_SEEN_URL = "https://stat.ripe.net/data/ris-first-last-seen/data.json"
+PREFIX_OVERVIEW_URL = "https://stat.ripe.net/data/prefix-overview/data.json"
 
 HIGH_RISK_COUNTRIES = {"RU", "CN", "IR", "KP", "SY"}
 COUNTRY_TAIL_RE = re.compile(r",\s*([A-Z]{2})\s*$")
@@ -37,6 +39,28 @@ ANSI_GREEN = "\033[32m"
 def normalise_asn(value: str) -> str:
     v = value.strip().upper()
     return v if v.startswith("AS") else f"AS{v}"
+
+
+def is_ip_resource(value: str) -> bool:
+    try:
+        ipaddress.ip_address(value.strip())
+        return True
+    except ValueError:
+        return False
+
+
+def resolve_asn_from_ip(ip: str) -> str:
+    headers = {"User-Agent": USER_AGENT}
+    response = requests.get(PREFIX_OVERVIEW_URL, params={"resource": ip}, headers=headers, timeout=TIMEOUT_SECONDS)
+    response.raise_for_status()
+    data = response.json().get("data", {})
+    asns = data.get("asns", [])
+    if isinstance(asns, list) and asns:
+        first = asns[0] if isinstance(asns[0], dict) else {}
+        asn = first.get("asn")
+        if asn is not None:
+            return normalise_asn(str(asn))
+    raise RuntimeError(f"No ASN mapping found for IP: {ip}")
 
 
 def parse_iso_time(value: str) -> datetime | None:
@@ -79,8 +103,10 @@ def get_upstreams(neighbours: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return out
 
 
-def analyse_asn(asn_input: str) -> Dict[str, Any]:
-    asn = normalise_asn(asn_input)
+def analyse_asn(resource_input: str) -> Dict[str, Any]:
+    raw = resource_input.strip()
+    resolved_from_ip = is_ip_resource(raw)
+    asn = resolve_asn_from_ip(raw) if resolved_from_ip else normalise_asn(raw)
 
     # Initialising data collection, Analysing RIPEstat sources.
     overview = fetch_json(AS_OVERVIEW_URL, asn)
@@ -131,6 +157,8 @@ def analyse_asn(asn_input: str) -> Dict[str, Any]:
         newly_established = first_seen_dt >= (now - timedelta(days=365))
 
     return {
+        "input": raw,
+        "resolved_from_ip": resolved_from_ip,
         "asn": asn,
         "holder": holder,
         "registration_country": registration_country,
@@ -151,12 +179,12 @@ def colour_line(line: str, red: bool) -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Initialising ASN Network Integrity Auditor")
-    parser.add_argument("asn", help="ASN value, for example AS15169 or 15169")
+    parser.add_argument("resource", help="ASN or IP value, for example AS15169, 15169, or 8.8.8.8")
     parser.add_argument("--json", action="store_true", help="Output machine-readable JSON")
     args = parser.parse_args()
 
     try:
-        result = analyse_asn(args.asn)
+        result = analyse_asn(args.resource)
     except requests.exceptions.RequestException as exc:
         message = "Authorised request failed, network or RIPEstat service is unreachable."
         if args.json:
@@ -182,6 +210,10 @@ def main() -> int:
     print(border)
     print(f"ASN NETWORK INTEGRITY AUDITOR: {ANSI_BOLD}{result['asn']}{ANSI_RESET}")
     print(border)
+    if result["resolved_from_ip"]:
+        print(f"Input Resource      : {result['input']} (resolved to {result['asn']})")
+    else:
+        print(f"Input Resource      : {result['input']}")
     print()
 
     print("🏢 ENTITY INFO")
