@@ -35,7 +35,14 @@ Single IP lookup:
 
 ```bash
 python3 core/ip_lookup.py 8.8.8.8
+python3 core/ip_lookup.py 8.8.8.8 --json
 ```
+
+IP lookup data source notes:
+
+- Uses RIPEstat Prefix Overview for ASN and holder intelligence.
+- Uses RIPEstat RIR Stats Country for country attribution.
+- Includes automated high-risk jurisdiction warning for: RU, CN, IR, KP, SY.
 
 Batch report from file:
 
