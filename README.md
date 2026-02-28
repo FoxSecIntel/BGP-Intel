@@ -149,6 +149,57 @@ Example JSON output:
 {"input":"AS15169","resolved_from_ip":false,"asn":"AS15169","holder":"GOOGLE - Google LLC","registration_country":"UNKNOWN","announced":true,"managed_prefix_count":1277,"upstreams_top3":[{"asn":"AS6453","power":469,"v4_peers":39513,"v6_peers":1808},{"asn":"AS1299","power":430,"v4_peers":42492,"v6_peers":6977},{"asn":"AS6939","power":379,"v4_peers":8988,"v6_peers":14457}],"first_seen":"2000-08-18T08:00:00","last_seen":"2024-09-23T16:00:00","is_high_risk":false,"is_newly_established":false}
 ```
 
+## AS Path Finder Script
+
+Primary script: `core/asn_path_finder.py`
+
+This script performs high-fidelity routing path analysis using RIPEstat live BGP state and neighbour intelligence.
+It is intended for network security specialists who need immediate path visibility and upstream context.
+
+Key capabilities:
+
+- Resolves most specific prefix and origin ASN from target IP.
+- Extracts live AS path from RIPEstat bgp-state data.
+- Formats a clear source-to-destination visual path using `->` arrows.
+- Identifies top 3 upstream providers from Left-side ASN neighbours by power.
+- Flags paths containing high-risk jurisdiction indicators.
+
+Example usage:
+
+```bash
+python3 core/asn_path_finder.py 8.8.8.8
+python3 core/asn_path_finder.py 8.8.8.8 --json
+```
+
+Example text output:
+
+```text
+===============================================================
+Routing Analysis Report: 8.8.8.8
+===============================================================
+Prefix: 8.8.8.0/24
+Origin ASN: AS15169 (GOOGLE - Google LLC)
+
+Live AS-Path:
+AS328840 -> AS327727 -> AS15169
+
+Top 3 Upstreams (Left Neighbours):
+  1. AS6453 | power=469 | v4=39513 | v6=1808
+  2. AS1299 | power=430 | v4=42492 | v6=6977
+  3. AS6939 | power=379 | v4=8988 | v6=14457
+
+[OK] No high-risk jurisdiction detected in path analysis
+
+Note: Path is derived from RIPEstat bgp-state first entry and formatted source-to-destination.
+===============================================================
+```
+
+Example JSON output:
+
+```json
+{"ip":"8.8.8.8","prefix":"8.8.8.0/24","origin_asn":"AS15169","origin_holder":"GOOGLE - Google LLC","as_path":["AS328840","AS327727","AS15169"],"visual_path":"AS328840 -> AS327727 -> AS15169","path_asn_details":[{"asn":"AS328840","holder":"ST-Digital-AS","country":"UNKNOWN"},{"asn":"AS327727","holder":"C-SQUARED","country":"UNKNOWN"},{"asn":"AS15169","holder":"GOOGLE - Google LLC","country":"UNKNOWN"}],"top_upstreams":[{"asn":"AS6453","power":469,"v4_peers":39513,"v6_peers":1808},{"asn":"AS1299","power":430,"v4_peers":42492,"v6_peers":6977},{"asn":"AS6939","power":379,"v4_peers":8988,"v6_peers":14457}],"path_contains_high_risk_jurisdiction":false,"high_risk_path_entries":[],"note":"Path is derived from RIPEstat bgp-state first entry and formatted source-to-destination."}
+```
+
 ## IP Generation Script
 
 Primary script: `core/ip_gen.py`
@@ -219,7 +270,7 @@ python3 scripts/run_report.py -f ip_addresses.txt --json
 | `scripts/bgp_hijack_check.py` | Expected origin ASN mismatch detection | Prefix+ASN or baseline file | Signal status table or JSON | Yes |
 | `scripts/rpki_check.py` | Route Origin Authorisation validation | Prefix+ASN or baseline file | Validity status table or JSON | Yes |
 | `scripts/run_report.py` | Batch enrichment workflow for IP lists | File of IPs | Batch report output, optional JSON | Yes |
-| `core/asn_path_finder.py` | ASN path and relationship analysis utility | ASN input | Console analysis output | No |
+| `core/asn_path_finder.py` | Live AS-path and upstream routing analysis via RIPEstat | IPv4/IPv6 target IP | Structured report or JSON object | Yes |
 | `core/ip_gen.py` | Generate global unicast IP samples, includes malicious test mode | `--count` with optional `--malicious` or `--json` | Newline IP list or JSON object | Yes |
 
 ## Current caveats
