@@ -52,6 +52,12 @@ python3 scripts/bgp_hijack_check.py --prefix 8.8.8.0/24 --expected-asn AS15169
 python3 scripts/bgp_hijack_check.py --baseline baseline.csv --json
 ```
 
+Data source notes for hijack checks:
+
+- Primary source: RIPEstat Announced Prefixes endpoint
+- Fallback source: RIPEstat RIS Prefixes endpoint
+- Requests include a custom user agent for stable API handling
+
 Example baseline file:
 
 - `baseline.csv.example`
