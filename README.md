@@ -227,6 +227,58 @@ $ python3 core/ip_gen.py --count 5 --malicious
 175.45.176.93
 ```
 
+## Euro Sovereignty Audit Script
+
+Primary script: `core/sovereignty_audit.py`
+
+This policy-aware auditor evaluates whether traffic remains under European control, or detours through extra-EU jurisdictions.
+It combines RIPEstat routing state, ASN entity context, and RPKI validation in one verdict-focused report.
+
+Key capabilities:
+
+- Accepts IP, ASN, or URL input (`--url`) and supports piped URL input from `un-shorten.sh`.
+- Extracts live AS path from RIPEstat BGP state.
+- Flags extra-EU path entries with `[🚩 EXTRA-EU DATA DETOUR]`.
+- Flags high-risk jurisdictions in path with `[⚠️ PATH CONTAINS HIGH-RISK JURISDICTION]`.
+- Performs mandatory RPKI validation and marks `invalid` as potential foreign hijack risk.
+- Detects foreign infrastructure dependencies via holder keyword matches.
+
+Example usage:
+
+```bash
+python3 core/sovereignty_audit.py 8.8.8.8
+python3 core/sovereignty_audit.py AS15169
+python3 core/sovereignty_audit.py --url https://bit.ly/example
+./un-shorten.sh https://bit.ly/example | python3 core/sovereignty_audit.py
+python3 core/sovereignty_audit.py 8.8.8.8 --json
+```
+
+Example text output:
+
+```text
+================================================================
+Initialising Euro Sovereignty Audit: 8.8.8.8
+================================================================
+Target IP: 8.8.8.8
+Prefix: 8.8.8.0/24
+Origin ASN: AS15169 (GOOGLE - Google LLC)
+
+Analysing route path:
+AS328840 -> AS327727 -> AS15169
+
+Top 3 Upstreams (Left neighbours):
+  1. AS6453 | power=469 | v4=39513 | v6=1808
+  2. AS1299 | power=430 | v4=42492 | v6=6977
+  3. AS6939 | power=379 | v4=8988 | v6=14457
+
+Routing Integrity (RPKI):
+State: valid
+
+[OK] Path remains within known EU/EEA jurisdictions
+Authorised Sovereignty Verdict: Sovereign (EU-Only)
+================================================================
+```
+
 ## Routing Integrity Checks
 
 ### BGP hijack or leak signal check
@@ -271,6 +323,7 @@ python3 scripts/run_report.py -f ip_addresses.txt --json
 | `scripts/rpki_check.py` | Route Origin Authorisation validation | Prefix+ASN or baseline file | Validity status table or JSON | Yes |
 | `scripts/run_report.py` | Batch enrichment workflow for IP lists | File of IPs | Batch report output, optional JSON | Yes |
 | `core/asn_path_finder.py` | Live AS-path and upstream routing analysis via RIPEstat | IPv4/IPv6 target IP | Structured report or JSON object | Yes |
+| `core/sovereignty_audit.py` | EU sovereignty routing audit with detour and RPKI checks | IP, ASN, URL, or piped URL | Verdict report or full JSON audit | Yes |
 | `core/ip_gen.py` | Generate global unicast IP samples, includes malicious test mode | `--count` with optional `--malicious` or `--json` | Newline IP list or JSON object | Yes |
 
 ## Current caveats
