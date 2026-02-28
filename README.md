@@ -61,20 +61,33 @@ python3 core/ip_lookup.py 8.8.8.8 --json
 Example text output:
 
 ```text
-Risk Profile:
-[☁️ CLOUD/DATA CENTRE]
-Analysing complete, structured summary:
-IP: 8.8.8.8
-Holder: GOOGLE - Google LLC
-ASN: 15169
-Country: US
-Abuse Contact: network-abuse@google.com
+===============================================================
+🔍 IP INTEL REPORT: 193.38.113.3
+===============================================================
+
+📊 RISK PROFILE
+---------------------------------------------------------------
+[✅] JURISDICTION: GB (United Kingdom) - Low Risk
+[🏠] TYPE        : Residential / Consumer ISP
+[🛡️] PRIVACY     : No Proxy/VPN detected
+
+🏢 NETWORK IDENTITY
+---------------------------------------------------------------
+HOLDER: NTL - Virgin Media Limited
+ASN   : 5089
+RIR   : RIPE NCC
+
+📩 INCIDENT RESPONSE
+---------------------------------------------------------------
+ABUSE : abuse@virginmediao2.co.uk
+
+===============================================================
 ```
 
 Example JSON output:
 
 ```json
-{"ip":"8.8.8.8","asn":"15169","holder":"GOOGLE - Google LLC","country":"US","is_high_risk":false,"is_cloud":true,"is_anonymised":false,"abuse_email":"network-abuse@google.com"}
+{"ip":"8.8.8.8","asn":"15169","holder":"GOOGLE - Google LLC","country":"US","country_name":"United States","rir":"ARIN","is_high_risk":false,"is_cloud":true,"is_anonymised":false,"abuse_email":"network-abuse@google.com"}
 ```
 
 ## Routing Integrity Checks
