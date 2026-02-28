@@ -112,6 +112,43 @@ python3 core/asn_integrity_audit.py 8.8.8.8
 python3 core/asn_integrity_audit.py AS15169 --json
 ```
 
+Example text output:
+
+```text
+===============================================================
+ASN NETWORK INTEGRITY AUDITOR: AS15169
+===============================================================
+Input Resource      : 8.8.8.8 (resolved to AS15169)
+
+🏢 ENTITY INFO
+---------------------------------------------------------------
+Holder              : GOOGLE - Google LLC
+Registration Country: UNKNOWN
+Announced Status    : True
+
+🌐 ROUTING & PEERING
+---------------------------------------------------------------
+Managed Prefixes: 1277
+Top 3 Upstreams (Left Neighbours):
+  1. AS6453 | power=469 | v4=39513 | v6=1808
+  2. AS1299 | power=430 | v4=42492 | v6=6977
+  3. AS6939 | power=379 | v4=8988 | v6=14457
+First Seen: 2000-08-18T08:00:00
+Last Seen : 2024-09-23T16:00:00
+
+📊 RISK AUDIT
+---------------------------------------------------------------
+Jurisdiction Risk: UNKNOWN
+[OK] Longevity check: not newly established
+===============================================================
+```
+
+Example JSON output:
+
+```json
+{"input":"AS15169","resolved_from_ip":false,"asn":"AS15169","holder":"GOOGLE - Google LLC","registration_country":"UNKNOWN","announced":true,"managed_prefix_count":1277,"upstreams_top3":[{"asn":"AS6453","power":469,"v4_peers":39513,"v6_peers":1808},{"asn":"AS1299","power":430,"v4_peers":42492,"v6_peers":6977},{"asn":"AS6939","power":379,"v4_peers":8988,"v6_peers":14457}],"first_seen":"2000-08-18T08:00:00","last_seen":"2024-09-23T16:00:00","is_high_risk":false,"is_newly_established":false}
+```
+
 ## Routing Integrity Checks
 
 ### BGP hijack or leak signal check
