@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import base64
 import ipaddress
+import json
 import random
 import sys
 
@@ -57,6 +58,7 @@ def main() -> int:
             "Examples:\n"
             "  python3 core/ip_gen.py --count 5\n"
             "  python3 core/ip_gen.py --count 5 --malicious\n"
+            "  python3 core/ip_gen.py --count 5 --json\n"
             "  python3 core/ip_gen.py -m"
         ),
     )
@@ -76,6 +78,11 @@ def main() -> int:
         action="store_true",
         help="Authorised testing mode: generate IPs from RU, CN, IR, KP sample ranges",
     )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Output generated IPs as JSON",
+    )
     args = parser.parse_args()
 
     if args.message:
@@ -85,12 +92,19 @@ def main() -> int:
     if args.count is None:
         parser.error("the following arguments are required: --count")
 
+    generated_ips = []
     for _ in range(args.count):
         if args.malicious:
             prefix = random.choice(MALICIOUS_TEST_PREFIXES)
-            print(random_ip_from_prefix(prefix))
+            generated_ips.append(random_ip_from_prefix(prefix))
         else:
-            print(random_global_unicast_ip())
+            generated_ips.append(random_global_unicast_ip())
+
+    if args.json:
+        print(json.dumps({"count": args.count, "malicious": args.malicious, "ips": generated_ips}))
+    else:
+        for ip in generated_ips:
+            print(ip)
 
     return 0
 

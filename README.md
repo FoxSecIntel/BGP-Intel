@@ -161,6 +161,7 @@ Example usage:
 ```bash
 python3 core/ip_gen.py --count 5
 python3 core/ip_gen.py --count 5 --malicious
+python3 core/ip_gen.py --count 5 --json
 python3 core/ip_gen.py -m
 ```
 
@@ -219,7 +220,7 @@ python3 scripts/run_report.py -f ip_addresses.txt --json
 | `scripts/rpki_check.py` | Route Origin Authorisation validation | Prefix+ASN or baseline file | Validity status table or JSON | Yes |
 | `scripts/run_report.py` | Batch enrichment workflow for IP lists | File of IPs | Batch report output, optional JSON | Yes |
 | `core/asn_path_finder.py` | ASN path and relationship analysis utility | ASN input | Console analysis output | No |
-| `core/ip_gen.py` | Generate global unicast IP samples, includes malicious test mode | `--count` and optional `--malicious` | Newline IP list for pipelines | No |
+| `core/ip_gen.py` | Generate global unicast IP samples, includes malicious test mode | `--count` with optional `--malicious` or `--json` | Newline IP list or JSON object | Yes |
 
 ## Current caveats
 
