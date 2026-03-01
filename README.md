@@ -7,6 +7,17 @@
 
 It is designed for fast triage, routing integrity checks, and repeatable analyst workflows.
 
+## Why this matters
+
+- **Impact:** Speeds up SOC triage for suspicious IPs, ASNs, and route anomalies.
+- **Scale:** Designed for repeatable CLI and JSON workflows across analyst teams and CI jobs.
+- **Use case:** Incident response, threat hunting, and routing integrity validation.
+
+## Demo media
+
+- Screenshot set: `docs/media/` (recommended next add: one screenshot per core script)
+- Demo GIF target: 30-second CLI run showing `ip_lookup.py` -> `asn_integrity_audit.py` -> `asn_path_finder.py`
+
 ## Features
 
 - Enriched IP triage with risk profiling
