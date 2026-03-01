@@ -7,9 +7,7 @@ A routing and infrastructure intelligence toolkit for security operations teams.
 
 ## Why this project
 
-- **Impact:** Accelerates triage for suspicious routes, prefixes, and ASN behaviour.
-- **Scale:** Supports repeatable command-line and JSON workflows for analyst teams and automation.
-- **Use case:** Incident response, threat hunting, and routing integrity validation.
+BGP-Intel is designed to assist network defenders efficiently detect BGP route anomalies. It ingests live MRT dumps, enriches AS-paths with PeeringDB data, and outputs alerts with enrichment metadata in JSON.
 
 ## Demo media
 
