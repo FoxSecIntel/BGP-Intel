@@ -1,22 +1,26 @@
+![Status](https://img.shields.io/badge/status-maintained-brightgreen)
 ![Python](https://img.shields.io/badge/python-3.8%2B-blue)
-![Status](https://img.shields.io/badge/status-active-brightgreen)
 
 # BGP-Intel
 
-**BGP-Intel** is a lightweight IP and ASN intelligence toolkit for Tier 1 SOC analysts.
+A routing and infrastructure intelligence toolkit for security operations teams.
 
-It is designed for fast triage, routing integrity checks, and repeatable analyst workflows.
+## Why this project
 
-## Why this matters
-
-- **Impact:** Speeds up SOC triage for suspicious IPs, ASNs, and route anomalies.
-- **Scale:** Designed for repeatable CLI and JSON workflows across analyst teams and CI jobs.
+- **Impact:** Accelerates triage for suspicious routes, prefixes, and ASN behaviour.
+- **Scale:** Supports repeatable command-line and JSON workflows for analyst teams and automation.
 - **Use case:** Incident response, threat hunting, and routing integrity validation.
 
 ## Demo media
 
 - Screenshot: ![BGP-Intel terminal screenshot](docs/media/terminal-screenshot.png)
 - Demo GIF: ![BGP-Intel demo](docs/media/demo.gif)
+
+## Capability snapshot
+
+- Enriched IP triage and risk profiling
+- ASN integrity and upstream intelligence
+- Live path visibility and route anomaly checks
 
 ## Features
 
@@ -59,7 +63,7 @@ Data sources:
 Intelligence flags:
 
 - High-risk jurisdiction: `RU`, `CN`, `IR`, `KP`, `SY`
-- Cloud or data-centre footprint: `AWS`, `Amazon`, `Google`, `Azure`, `Hetzner`, `DigitalOcean`, `OVH`
+- Cloud or data-centre footprint: `AWS`, `Amazon`, `Azure`, `Hetzner`, `DigitalOcean`, `OVH`, `major cloud provider markers`
 - Anonymiser indicators: `VPN`, `Proxy`, `Tor`, `Mullvad`
 
 Example usage:
@@ -98,7 +102,7 @@ ABUSE : abuse@virginmediao2.co.uk
 Example JSON output:
 
 ```json
-{"ip":"8.8.8.8","asn":"15169","holder":"GOOGLE - Google LLC","country":"US","country_name":"United States","rir":"ARIN","is_high_risk":false,"is_cloud":true,"is_anonymised":false,"abuse_email":"network-abuse@google.com"}
+{"ip":"8.8.8.8","asn":"15169","holder":"EXAMPLE - ExampleCloud Ltd","country":"US","country_name":"United States","rir":"ARIN","is_high_risk":false,"is_cloud":true,"is_anonymised":false,"abuse_email":"abuse@examplecloud.net"}
 ```
 
 ## ASN Integrity Audit Script
@@ -133,7 +137,7 @@ Input Resource      : 8.8.8.8 (resolved to AS15169)
 
 🏢 ENTITY INFO
 ---------------------------------------------------------------
-Holder              : GOOGLE - Google LLC
+Holder              : EXAMPLE - ExampleCloud Ltd
 Registration Country: UNKNOWN
 Announced Status    : True
 
@@ -157,7 +161,7 @@ Jurisdiction Risk: UNKNOWN
 Example JSON output:
 
 ```json
-{"input":"AS15169","resolved_from_ip":false,"asn":"AS15169","holder":"GOOGLE - Google LLC","registration_country":"UNKNOWN","announced":true,"managed_prefix_count":1277,"upstreams_top3":[{"asn":"AS6453","power":469,"v4_peers":39513,"v6_peers":1808},{"asn":"AS1299","power":430,"v4_peers":42492,"v6_peers":6977},{"asn":"AS6939","power":379,"v4_peers":8988,"v6_peers":14457}],"first_seen":"2000-08-18T08:00:00","last_seen":"2024-09-23T16:00:00","is_high_risk":false,"is_newly_established":false}
+{"input":"AS15169","resolved_from_ip":false,"asn":"AS15169","holder":"EXAMPLE - ExampleCloud Ltd","registration_country":"UNKNOWN","announced":true,"managed_prefix_count":1277,"upstreams_top3":[{"asn":"AS6453","power":469,"v4_peers":39513,"v6_peers":1808},{"asn":"AS1299","power":430,"v4_peers":42492,"v6_peers":6977},{"asn":"AS6939","power":379,"v4_peers":8988,"v6_peers":14457}],"first_seen":"2000-08-18T08:00:00","last_seen":"2024-09-23T16:00:00","is_high_risk":false,"is_newly_established":false}
 ```
 
 ## AS Path Finder Script
@@ -189,7 +193,7 @@ Example text output:
 Routing Analysis Report: 8.8.8.8
 ===============================================================
 Prefix: 8.8.8.0/24
-Origin ASN: AS15169 (GOOGLE - Google LLC)
+Origin ASN: AS15169 (EXAMPLE - ExampleCloud Ltd)
 
 Live AS-Path:
 AS328840 -> AS327727 -> AS15169
@@ -208,7 +212,7 @@ Note: Path is derived from RIPEstat bgp-state first entry and formatted source-t
 Example JSON output:
 
 ```json
-{"ip":"8.8.8.8","prefix":"8.8.8.0/24","origin_asn":"AS15169","origin_holder":"GOOGLE - Google LLC","as_path":["AS328840","AS327727","AS15169"],"visual_path":"AS328840 -> AS327727 -> AS15169","path_asn_details":[{"asn":"AS328840","holder":"ST-Digital-AS","country":"UNKNOWN"},{"asn":"AS327727","holder":"C-SQUARED","country":"UNKNOWN"},{"asn":"AS15169","holder":"GOOGLE - Google LLC","country":"UNKNOWN"}],"top_upstreams":[{"asn":"AS6453","power":469,"v4_peers":39513,"v6_peers":1808},{"asn":"AS1299","power":430,"v4_peers":42492,"v6_peers":6977},{"asn":"AS6939","power":379,"v4_peers":8988,"v6_peers":14457}],"path_contains_high_risk_jurisdiction":false,"high_risk_path_entries":[],"note":"Path is derived from RIPEstat bgp-state first entry and formatted source-to-destination."}
+{"ip":"8.8.8.8","prefix":"8.8.8.0/24","origin_asn":"AS15169","origin_holder":"EXAMPLE - ExampleCloud Ltd","as_path":["AS328840","AS327727","AS15169"],"visual_path":"AS328840 -> AS327727 -> AS15169","path_asn_details":[{"asn":"AS328840","holder":"ST-Digital-AS","country":"UNKNOWN"},{"asn":"AS327727","holder":"C-SQUARED","country":"UNKNOWN"},{"asn":"AS15169","holder":"EXAMPLE - ExampleCloud Ltd","country":"UNKNOWN"}],"top_upstreams":[{"asn":"AS6453","power":469,"v4_peers":39513,"v6_peers":1808},{"asn":"AS1299","power":430,"v4_peers":42492,"v6_peers":6977},{"asn":"AS6939","power":379,"v4_peers":8988,"v6_peers":14457}],"path_contains_high_risk_jurisdiction":false,"high_risk_path_entries":[],"note":"Path is derived from RIPEstat bgp-state first entry and formatted source-to-destination."}
 ```
 
 ## IP Generation Script
@@ -272,7 +276,7 @@ Initialising Euro Sovereignty Audit: 8.8.8.8
 ================================================================
 Target IP: 8.8.8.8
 Prefix: 8.8.8.0/24
-Origin ASN: AS15169 (GOOGLE - Google LLC)
+Origin ASN: AS15169 (EXAMPLE - ExampleCloud Ltd)
 
 Analysing route path:
 AS328840 -> AS327727 -> AS15169
