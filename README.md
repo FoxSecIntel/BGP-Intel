@@ -335,6 +335,16 @@ python3 scripts/run_report.py -f ip_addresses.txt --json
 - Do not commit real API keys.
 - Keep secrets in local config only.
 
+
+## Quick Demo
+
+```bash
+# 1) Run a core check
+# 2) Request JSON output
+# 3) Pipe into jq for analyst workflows
+```
+
+
 ## Licence
 
 MIT
