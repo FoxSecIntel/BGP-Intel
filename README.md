@@ -15,8 +15,8 @@ It is designed for fast triage, routing integrity checks, and repeatable analyst
 
 ## Demo media
 
-- Screenshot set: `docs/media/` (recommended next add: one screenshot per core script)
-- Demo GIF target: 30-second CLI run showing `ip_lookup.py` -> `asn_integrity_audit.py` -> `asn_path_finder.py`
+- Screenshot: ![BGP-Intel terminal screenshot](docs/media/terminal-screenshot.png)
+- Demo GIF: ![BGP-Intel demo](docs/media/demo.gif)
 
 ## Features
 
