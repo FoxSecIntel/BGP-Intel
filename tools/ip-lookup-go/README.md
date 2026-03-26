@@ -4,12 +4,21 @@ High-concurrency IP lookup utility for PTR + ASN/Organisation enrichment.
 
 ## Build
 
+Quick build (Linux + Windows):
+
+```bash
+cd tools/ip-lookup-go
+./build.sh
+```
+
+Manual Linux build:
+
 ```bash
 cd tools/ip-lookup-go
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "-s -w" -o ip-lookup .
 ```
 
-## Windows cross-compile (from Linux)
+Manual Windows cross-compile (from Linux):
 
 ```bash
 cd tools/ip-lookup-go
