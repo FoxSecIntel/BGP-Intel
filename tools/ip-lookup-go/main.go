@@ -23,16 +23,20 @@ type IPLookupResult struct {
 	Hostname     string `json:"hostname,omitempty"`
 	ASN          string `json:"asn,omitempty"`
 	Organisation string `json:"organisation,omitempty"`
+	AbuseEmail   string `json:"abuse_email,omitempty"`
+	RIR          string `json:"rir,omitempty"`
 	Error        string `json:"error,omitempty"`
 }
 
 type rdapEntity struct {
+	Roles      []string      `json:"roles"`
 	VCardArray []interface{} `json:"vcardArray"`
 }
 
 type rdapResponse struct {
 	Name     string       `json:"name"`
 	Handle   string       `json:"handle"`
+	Port43   string       `json:"port43"`
 	Entities []rdapEntity `json:"entities"`
 }
 
@@ -167,24 +171,29 @@ func lookupIP(ip string, timeout time.Duration) IPLookupResult {
 
 	rdapCtx, rdapCancel := context.WithTimeout(context.Background(), timeout)
 	defer rdapCancel()
-	asn, org, err := rdapLookup(rdapCtx, ip)
+	asn, org, abuseEmail, rir, err := rdapLookup(rdapCtx, ip)
 	if err == nil {
 		res.ASN = asn
 		res.Organisation = org
+		res.AbuseEmail = abuseEmail
+		res.RIR = rir
 	} else if res.Hostname == "" {
 		res.Error = err.Error()
 	}
 
-	// ASN fallback via Team Cymru whois, useful when RDAP omits AS handle.
-	if res.ASN == "" || strings.EqualFold(res.ASN, "Unknown") {
+	// ASN/RIR fallback via Team Cymru whois, useful when RDAP omits AS handle.
+	if res.ASN == "" || strings.EqualFold(res.ASN, "Unknown") || res.RIR == "" || strings.EqualFold(res.RIR, "Unknown") {
 		asnCtx, asnCancel := context.WithTimeout(context.Background(), timeout)
 		defer asnCancel()
-		if a, o, e := cymruLookup(asnCtx, ip); e == nil {
-			if a != "" {
+		if a, o, r, e := cymruLookup(asnCtx, ip); e == nil {
+			if (res.ASN == "" || strings.EqualFold(res.ASN, "Unknown")) && a != "" {
 				res.ASN = a
 			}
 			if (res.Organisation == "" || strings.EqualFold(res.Organisation, "Unknown")) && o != "" {
 				res.Organisation = o
+			}
+			if (res.RIR == "" || strings.EqualFold(res.RIR, "Unknown")) && r != "" {
+				res.RIR = strings.ToUpper(r)
 			}
 		}
 	}
@@ -194,6 +203,12 @@ func lookupIP(ip string, timeout time.Duration) IPLookupResult {
 	}
 	if res.Organisation == "" {
 		res.Organisation = "Unknown"
+	}
+	if res.AbuseEmail == "" {
+		res.AbuseEmail = "Unknown"
+	}
+	if res.RIR == "" {
+		res.RIR = "Unknown"
 	}
 
 	return res
@@ -223,27 +238,27 @@ func reverseDNS(ctx context.Context, ip string) (string, error) {
 	}
 }
 
-func rdapLookup(ctx context.Context, ip string) (asn string, org string, err error) {
+func rdapLookup(ctx context.Context, ip string) (asn string, org string, abuseEmail string, rir string, err error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://rdap.org/ip/"+ip, nil)
 	if err != nil {
-		return "", "", err
+		return "", "", "", "", err
 	}
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", "", err
+		return "", "", "", "", err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		io.Copy(io.Discard, resp.Body)
-		return "", "", fmt.Errorf("RDAP HTTP %d", resp.StatusCode)
+		return "", "", "", "", fmt.Errorf("RDAP HTTP %d", resp.StatusCode)
 	}
 
 	var rr rdapResponse
 	if err := json.NewDecoder(resp.Body).Decode(&rr); err != nil {
-		return "", "", err
+		return "", "", "", "", err
 	}
 
 	asn = extractASN(rr.Handle)
@@ -254,14 +269,23 @@ func rdapLookup(ctx context.Context, ip string) (asn string, org string, err err
 	if org == "" {
 		org = extractOrgFromEntities(rr.Entities)
 	}
+	abuseEmail = extractAbuseEmail(rr.Entities)
+	rir = inferRIR(rr.Port43)
+
 	if org == "" {
 		org = "Unknown"
 	}
 	if asn == "" {
 		asn = "Unknown"
 	}
+	if abuseEmail == "" {
+		abuseEmail = "Unknown"
+	}
+	if rir == "" {
+		rir = "Unknown"
+	}
 
-	return asn, org, nil
+	return asn, org, abuseEmail, rir, nil
 }
 
 func extractASN(s string) string {
@@ -305,11 +329,71 @@ func extractOrgFromEntities(entities []rdapEntity) string {
 	return ""
 }
 
-func cymruLookup(ctx context.Context, ip string) (asn string, org string, err error) {
+func extractAbuseEmail(entities []rdapEntity) string {
+	var fallback string
+	for _, e := range entities {
+		if len(e.VCardArray) < 2 {
+			continue
+		}
+		rows, ok := e.VCardArray[1].([]interface{})
+		if !ok {
+			continue
+		}
+		isAbuseRole := false
+		for _, r := range e.Roles {
+			if strings.EqualFold(strings.TrimSpace(r), "abuse") {
+				isAbuseRole = true
+				break
+			}
+		}
+		for _, row := range rows {
+			parts, ok := row.([]interface{})
+			if !ok || len(parts) < 4 {
+				continue
+			}
+			key, _ := parts[0].(string)
+			if strings.EqualFold(key, "email") {
+				if v, ok := parts[3].(string); ok {
+					em := strings.TrimSpace(v)
+					if em == "" {
+						continue
+					}
+					if isAbuseRole {
+						return em
+					}
+					if fallback == "" {
+						fallback = em
+					}
+				}
+			}
+		}
+	}
+	return fallback
+}
+
+func inferRIR(port43 string) string {
+	p := strings.ToLower(strings.TrimSpace(port43))
+	switch {
+	case strings.Contains(p, "arin"):
+		return "ARIN"
+	case strings.Contains(p, "ripe"):
+		return "RIPE"
+	case strings.Contains(p, "apnic"):
+		return "APNIC"
+	case strings.Contains(p, "lacnic"):
+		return "LACNIC"
+	case strings.Contains(p, "afrinic"):
+		return "AFRINIC"
+	default:
+		return ""
+	}
+}
+
+func cymruLookup(ctx context.Context, ip string) (asn string, org string, rir string, err error) {
 	d := net.Dialer{}
 	conn, err := d.DialContext(ctx, "tcp", "whois.cymru.com:43")
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 	defer conn.Close()
 
@@ -319,7 +403,7 @@ func cymruLookup(ctx context.Context, ip string) (asn string, org string, err er
 
 	query := fmt.Sprintf(" -v %s\n", ip)
 	if _, err := conn.Write([]byte(query)); err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 
 	sc := bufio.NewScanner(conn)
@@ -331,39 +415,43 @@ func cymruLookup(ctx context.Context, ip string) (asn string, org string, err er
 		}
 	}
 	if err := sc.Err(); err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 	if len(lines) < 2 {
-		return "", "", errors.New("cymru response empty")
+		return "", "", "", errors.New("cymru response empty")
 	}
 
 	// Format: AS | IP | BGP Prefix | CC | Registry | Allocated | AS Name
 	parts := strings.Split(lines[1], "|")
 	if len(parts) < 7 {
-		return "", "", errors.New("cymru parse error")
+		return "", "", "", errors.New("cymru parse error")
 	}
 	rawASN := strings.TrimSpace(parts[0])
+	rawRIR := strings.TrimSpace(parts[4])
 	rawOrg := strings.TrimSpace(parts[6])
 	if rawASN != "" {
 		asn = "AS" + rawASN
 	}
 	org = rawOrg
-	return asn, org, nil
+	rir = strings.ToUpper(rawRIR)
+	return asn, org, rir, nil
 }
 
 func printTable(results []IPLookupResult) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
-	fmt.Fprintln(w, "IP\tHostname\tASN\tOrganisation\tStatus")
+	fmt.Fprintln(w, "IP\tHostname\tASN\tOrganisation\tAbuse Email\tRIR\tStatus")
 	for _, r := range results {
 		status := "OK"
 		if r.Error != "" {
 			status = r.Error
 		}
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n",
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
 			emptyDash(r.IP),
 			emptyDash(r.Hostname),
 			emptyDash(r.ASN),
 			emptyDash(r.Organisation),
+			emptyDash(r.AbuseEmail),
+			emptyDash(r.RIR),
 			status,
 		)
 	}
