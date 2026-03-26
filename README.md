@@ -49,6 +49,8 @@ pip install -r requirements.txt
 
 Primary script: `core/ip_lookup.py`
 
+High-performance Go variant (worker pool + timeout-safe network lookups): `tools/ip-lookup-go/`
+
 This script is intended to give SOC analysts an immediate risk profile for any suspicious IP.
 It combines multiple RIPEstat data sources and applies practical detection heuristics in one pass.
 
@@ -331,6 +333,7 @@ python3 scripts/run_report.py -f ip_addresses.txt --json
 | Script | Primary Use Case | Input | Output | JSON Flag |
 |---|---|---|---|---|
 | `core/ip_lookup.py` | Enriched IP triage with risk profile flags | Single IPv4/IPv6 | Structured text or flat JSON profile | Yes |
+| `tools/ip-lookup-go/main.go` | High-concurrency IP triage (worker pool, PTR + RDAP, timeout-safe) | Single IP or file list | Human-readable table or JSON array | Yes |
 | `core/asn_integrity_audit.py` | ASN network integrity auditing with upstream and risk analysis | ASN or IPv4/IPv6 | Structured audit report or JSON object | Yes |
 | `scripts/bgp_hijack_check.py` | Expected origin ASN mismatch detection | Prefix+ASN or baseline file | Signal status table or JSON | Yes |
 | `scripts/rpki_check.py` | Route Origin Authorisation validation | Prefix+ASN or baseline file | Validity status table or JSON | Yes |
