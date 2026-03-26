@@ -175,6 +175,27 @@ func lookupIP(ip string, timeout time.Duration) IPLookupResult {
 		res.Error = err.Error()
 	}
 
+	// ASN fallback via Team Cymru whois, useful when RDAP omits AS handle.
+	if res.ASN == "" || strings.EqualFold(res.ASN, "Unknown") {
+		asnCtx, asnCancel := context.WithTimeout(context.Background(), timeout)
+		defer asnCancel()
+		if a, o, e := cymruLookup(asnCtx, ip); e == nil {
+			if a != "" {
+				res.ASN = a
+			}
+			if (res.Organisation == "" || strings.EqualFold(res.Organisation, "Unknown")) && o != "" {
+				res.Organisation = o
+			}
+		}
+	}
+
+	if res.ASN == "" {
+		res.ASN = "Unknown"
+	}
+	if res.Organisation == "" {
+		res.Organisation = "Unknown"
+	}
+
 	return res
 }
 
@@ -282,6 +303,52 @@ func extractOrgFromEntities(entities []rdapEntity) string {
 		}
 	}
 	return ""
+}
+
+func cymruLookup(ctx context.Context, ip string) (asn string, org string, err error) {
+	d := net.Dialer{}
+	conn, err := d.DialContext(ctx, "tcp", "whois.cymru.com:43")
+	if err != nil {
+		return "", "", err
+	}
+	defer conn.Close()
+
+	if deadline, ok := ctx.Deadline(); ok {
+		_ = conn.SetDeadline(deadline)
+	}
+
+	query := fmt.Sprintf(" -v %s\n", ip)
+	if _, err := conn.Write([]byte(query)); err != nil {
+		return "", "", err
+	}
+
+	sc := bufio.NewScanner(conn)
+	lines := []string{}
+	for sc.Scan() {
+		line := strings.TrimSpace(sc.Text())
+		if line != "" {
+			lines = append(lines, line)
+		}
+	}
+	if err := sc.Err(); err != nil {
+		return "", "", err
+	}
+	if len(lines) < 2 {
+		return "", "", errors.New("cymru response empty")
+	}
+
+	// Format: AS | IP | BGP Prefix | CC | Registry | Allocated | AS Name
+	parts := strings.Split(lines[1], "|")
+	if len(parts) < 7 {
+		return "", "", errors.New("cymru parse error")
+	}
+	rawASN := strings.TrimSpace(parts[0])
+	rawOrg := strings.TrimSpace(parts[6])
+	if rawASN != "" {
+		asn = "AS" + rawASN
+	}
+	org = rawOrg
+	return asn, org, nil
 }
 
 func printTable(results []IPLookupResult) {
