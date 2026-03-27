@@ -9,10 +9,7 @@ A routing and infrastructure intelligence toolkit for security operations teams.
 
 BGP-Intel is designed to assist network defenders efficiently detect BGP route anomalies. It ingests live MRT dumps, enriches AS-paths with PeeringDB data, and outputs alerts with enrichment metadata in JSON.
 
-## Demo media
 
-- Screenshot: ![BGP-Intel terminal screenshot](docs/media/terminal-screenshot.png)
-- Demo GIF: 
 ## Capability snapshot
 
 - Enriched IP triage and risk profiling
