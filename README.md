@@ -12,8 +12,7 @@ BGP-Intel is designed to assist network defenders efficiently detect BGP route a
 ## Demo media
 
 - Screenshot: ![BGP-Intel terminal screenshot](docs/media/terminal-screenshot.png)
-- Demo GIF: ![BGP-Intel demo](docs/media/demo.gif)
-
+- Demo GIF: 
 ## Capability snapshot
 
 - Enriched IP triage and risk profiling
@@ -49,9 +48,9 @@ pip install -r requirements.txt
 
 Primary script: `core/ip_lookup.py`
 
-High-performance Go variant (worker pool + timeout-safe network lookups): `tools/ip-lookup-go/`
+High-performance Go variant: `tools/ip-lookup-go/`
 
-This script is intended to give SOC analysts an immediate risk profile for any suspicious IP.
+Use the Go variant for bulk triage and automation. It is designed for high-concurrency IP enrichment with strict timeouts and consistent output fields.
 It combines multiple RIPEstat data sources and applies practical detection heuristics in one pass.
 
 Data sources:
@@ -333,7 +332,7 @@ python3 scripts/run_report.py -f ip_addresses.txt --json
 | Script | Primary Use Case | Input | Output | JSON Flag |
 |---|---|---|---|---|
 | `core/ip_lookup.py` | Enriched IP triage with risk profile flags | Single IPv4/IPv6 | Structured text or flat JSON profile | Yes |
-| `tools/ip-lookup-go/main.go` | High-concurrency IP triage (worker pool, PTR + RDAP, timeout-safe) | Single IP or file list | Human-readable table or JSON array | Yes |
+| `tools/ip-lookup-go/main.go` | High-concurrency IP enrichment with worker pool, PTR, RDAP + Cymru fallback, strict timeouts | Single IP or file list | Table or JSON with ASN/BGP prefix/country/abuse/RIR/source/latency | Yes |
 | `core/asn_integrity_audit.py` | ASN network integrity auditing with upstream and risk analysis | ASN or IPv4/IPv6 | Structured audit report or JSON object | Yes |
 | `scripts/bgp_hijack_check.py` | Expected origin ASN mismatch detection | Prefix+ASN or baseline file | Signal status table or JSON | Yes |
 | `scripts/rpki_check.py` | Route Origin Authorisation validation | Prefix+ASN or baseline file | Validity status table or JSON | Yes |
@@ -364,3 +363,60 @@ python3 scripts/run_report.py -f ip_addresses.txt --json
 ## Licence
 
 MIT
+
+
+## Go IP Lookup (High-Concurrency)
+
+Path: `tools/ip-lookup-go/`
+
+This is the performance-focused implementation for IP enrichment at scale.
+
+### Why use it
+
+- Worker pool architecture (`--workers`) for fast batch processing
+- Strict per-lookup timeout (`--timeout`) to avoid hanging requests
+- Reverse DNS (PTR) + RDAP + Team Cymru fallback
+- Consistent output for SOC workflows (table or `--json`)
+
+### Build
+
+```bash
+cd tools/ip-lookup-go
+./build.sh
+```
+
+### Usage
+
+Single IP:
+
+```bash
+./ip-lookup --ip 8.8.8.8
+```
+
+Batch file:
+
+```bash
+./ip-lookup --file ips.txt --workers 50 --timeout 2s
+```
+
+JSON output:
+
+```bash
+./ip-lookup --file ips.txt --workers 50 --json
+```
+
+### Output fields
+
+- IP
+- IP Version
+- Hostname (PTR)
+- ASN
+- BGP Prefix
+- Organisation
+- Country Code
+- Abuse Email
+- RIR
+- Lookup Source (`RDAP`, `Cymru`, `RDAP+Cymru`)
+- Lookup Latency (ms)
+- Status
+
