@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 if [[ "${1:-}" == "-a" || "${1:-}" == "--author" ]]; then
   echo "Author: FoxSecIntel"
-  echo "Repository: https://github.com/FoxSecIntel/BGP-Intel
+  echo "Repository: https://github.com/FoxSecIntel/BGP-Intel"
   echo "Tool: build.sh"
   exit 0
 fi

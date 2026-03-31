@@ -53,8 +53,16 @@ func main() {
 		workers = flag.Int("workers", 50, "Number of concurrent workers")
 		timeout = flag.Duration("timeout", 2*time.Second, "Per-lookup timeout")
 		jsonOut = flag.Bool("json", false, "Output as JSON")
+		author  = flag.Bool("a", false, "Show author and repository details")
 	)
 	flag.Parse()
+
+	if *author {
+		fmt.Println("Author: FoxSecIntel")
+		fmt.Println("Repository: https://github.com/FoxSecIntel/BGP-Intel")
+		fmt.Println("Tool: ip-lookup-go")
+		return
+	}
 
 	if *ipArg == "" && *fileArg == "" {
 		fmt.Fprintln(os.Stderr, "Please provide --ip or --file")
