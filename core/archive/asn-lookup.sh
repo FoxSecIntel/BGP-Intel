@@ -1,4 +1,11 @@
 #!/bin/bash
+if [[ "${1:-}" == "-a" || "${1:-}" == "--author" ]]; then
+  echo "Author: FoxSecIntel"
+  echo "Repository: https://github.com/FoxSecIntel/BGP-Intel
+  echo "Tool: asn-lookup.sh"
+  exit 0
+fi
+
 set -euo pipefail
 
 __r17q_blob="wqhWaWN0b3J5IGlzIG5vdCB3aW5uaW5nIGZvciBvdXJzZWx2ZXMsIGJ1dCBmb3Igb3RoZXJzLiAtIFRoZSBNYW5kYWxvcmlhbsKoCg=="
